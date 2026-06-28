@@ -1,0 +1,663 @@
+{
+  "scraped_at": "2026-06-28T13:35:29.032368+00:00",
+  "weeks": [
+    {
+      "week_start": "2026-06-22",
+      "days": [
+        {
+          "date": "2026-06-22",
+          "weekday": "Montag",
+          "soup": {
+            "name": "Trüffelschaum Suppe",
+            "desc": "Croutons",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Chef Salat  French Dressing",
+              "desc": ""
+            },
+            {
+              "name": "Nudelsalat | Babymozarella",
+              "desc": ""
+            },
+            {
+              "name": "Edamame | Tomaten Vinaigrette",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Meisterteller",
+              "desc": "Tafelspitz | Wurzelgemüse | Röstkartoffel & Apfelkren",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Meisterteller",
+              "desc": "\"Asado\"-Steak vom Schweinskotelett | Ofenkartoffel | Chimichurri",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Sizilianische Caponata",
+              "desc": "Tomaten-Melanzani Salsa | Kapern&Oliven",
+              "int": 6.7,
+              "ext": 11.6
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Mohnkuchen",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Weißes Schokoladen Mousse",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-06-23",
+          "weekday": "Dienstag",
+          "soup": {
+            "name": "Karotten-Ingwer Suppe",
+            "desc": "frischer Koriander",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Chef Salat  French Dressing",
+              "desc": ""
+            },
+            {
+              "name": "Nudelsalat | Babymozarella",
+              "desc": ""
+            },
+            {
+              "name": "Edamame | Tomaten Vinaigrette",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Faschiertes Laibchen vom Rind",
+              "desc": "Mac&Cheese | Ofengemüse",
+              "int": 7.4,
+              "ext": 14.4
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "gegrillter Zander",
+              "desc": "Kartoffel-Safran Sotto | Linsen",
+              "int": 9.4,
+              "ext": 18.2
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Grünes Thai-Gemüsecurry",
+              "desc": "Jasminreis I Sesam",
+              "int": 6.7,
+              "ext": 11.6
+            },
+            {
+              "slot": "Special",
+              "name": "Cordon Bleu",
+              "desc": "Pommes",
+              "int": 8.6,
+              "ext": 16.8
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Zwetschgen-Streusel Kuchen",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Erdbeer-& Schokomousse",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-06-24",
+          "weekday": "Mittwoch",
+          "soup": {
+            "name": "Kichererbsen-Tomatensuppe",
+            "desc": "Oliven Labneh",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Chef Salat  French Dressing",
+              "desc": ""
+            },
+            {
+              "name": "Nudelsalat | Babymozarella",
+              "desc": ""
+            },
+            {
+              "name": "Edamame | Tomaten Vinaigrette",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Altwiener Erdäpfel Gulasch",
+              "desc": "Sauerrahm | Speck",
+              "int": 7.4,
+              "ext": 14.4
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Landhuhnbrust",
+              "desc": "Chorizzo Bohnen | Erdäpfel Gratin",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Süßkartoffel-Ananascurry",
+              "desc": "Vollkornreis",
+              "int": 6.7,
+              "ext": 11.6
+            },
+            {
+              "slot": "Special",
+              "name": "Asia Wok",
+              "desc": "Rinderfiletspitzen",
+              "int": 9.4,
+              "ext": 16.8
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Käsekuchen",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Veganes Joghurt",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-06-25",
+          "weekday": "Donnerstag",
+          "soup": {
+            "name": "Spargelcremesuppe",
+            "desc": "Croutons",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Chef Salat  French Dressing",
+              "desc": ""
+            },
+            {
+              "name": "Nudelsalat | Babymozarella",
+              "desc": ""
+            },
+            {
+              "name": "Edamame | Tomaten Vinaigrette",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Meisterteller",
+              "desc": "\"Tajine\" Kalbfleischbällchen | Couscous",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Meisterteller",
+              "desc": "Kümmelbraten | Semmelknödel | Speckkraut",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Hausgemachte Gnocchi",
+              "desc": "Tomaten-Parmesan Sauce | Basilikum",
+              "int": 6.7,
+              "ext": 11.6
+            },
+            {
+              "slot": "Special",
+              "name": "Apfelstrudel",
+              "desc": "Vanillesauce",
+              "int": 5.0,
+              "ext": 9.7
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Punschkrapfen Schnitte",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Crunchy Chocolate Mousse",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-06-26",
+          "weekday": "Freitag",
+          "soup": {
+            "name": "grüne Spargelcreme Suppe",
+            "desc": "Croutons",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Gebratener Kabeljau",
+              "desc": "Melanzani Tatare I Harissaöl",
+              "int": 9.4,
+              "ext": 18.2
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Saltimbocca von der Landhuhnbrust",
+              "desc": "Cremige Polenta | Broccolini",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Tandoori Gemüse",
+              "desc": "Puola Reis",
+              "int": 6.7,
+              "ext": 11.6
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Mascarpone-Torte",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Grießpudding",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "week_start": "2026-06-29",
+      "days": [
+        {
+          "date": "2026-06-29",
+          "weekday": "Montag",
+          "soup": {
+            "name": "Rindsuppe",
+            "desc": "Backerbsen | Schnittlauch",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Räucherlachs-Avocado Salat",
+              "desc": ""
+            },
+            {
+              "name": "Wassermelone-Feta Salat",
+              "desc": ""
+            },
+            {
+              "name": "Crispy Kichererbsen Salat",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Coq au Vin",
+              "desc": "Gemüse | Püree",
+              "int": 7.4,
+              "ext": 14.4
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Gebratener Lachs",
+              "desc": "Cremespinat | Wurzelgemüse",
+              "int": 9.4,
+              "ext": 18.2
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Artischoken Mezzalune",
+              "desc": "Tomaten-Parmesan Sauce",
+              "int": 6.7,
+              "ext": 11.6
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Himbeer-Joghurt Törtchen",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Do&Co´s Schokoladenmousse",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-06-30",
+          "weekday": "Dienstag",
+          "soup": {
+            "name": "Erbsen-Minz Suppe",
+            "desc": "Schwarzbrot",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Räucherlachs-Avocado Salat",
+              "desc": ""
+            },
+            {
+              "name": "Wassermelone-Feta Salat",
+              "desc": ""
+            },
+            {
+              "name": "Crispy Kichererbsen Salat",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Albondigas",
+              "desc": "Rahmkartoffel I Broccoli",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Mango Chicken Curry",
+              "desc": "Basmati Reis | Koriander",
+              "int": 7.4,
+              "ext": 14.4
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Süßkartoffel Pürre",
+              "desc": "gegrilltes Gemüse | Koriander",
+              "int": 6.7,
+              "ext": 11.6
+            },
+            {
+              "slot": "Special",
+              "name": "Penne mit Österkron-Sauce",
+              "desc": "\"Panko\"-Hühnerbrust",
+              "int": 8.6,
+              "ext": 16.8
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Trüffeltart",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Reispudding",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-07-01",
+          "weekday": "Mittwoch",
+          "soup": {
+            "name": "Kokosnuss-Kürbis Suppe",
+            "desc": "Croutons | Koriander",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Räucherlachs-Avocado Salat",
+              "desc": ""
+            },
+            {
+              "name": "Wassermelone-Feta Salat",
+              "desc": ""
+            },
+            {
+              "name": "Crispy Kichererbsen Salat",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Paprika Huhn",
+              "desc": "Butterspätzle | Sauerrahm",
+              "int": 7.4,
+              "ext": 14.4
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Ricotta Cappellacci",
+              "desc": "Rinder Bolognese | Erbsen",
+              "int": 7.4,
+              "ext": 14.4
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Kichererbsen Curry",
+              "desc": "Kurkuma Reis",
+              "int": 6.7,
+              "ext": 11.6
+            },
+            {
+              "slot": "Special",
+              "name": "Poke Bowl",
+              "desc": "Räucherlachs",
+              "int": 9.4,
+              "ext": 18.2
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Karotten Kuchen",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Schokoladen Flan",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-07-02",
+          "weekday": "Donnerstag",
+          "soup": {
+            "name": "Hühner Laksa Suppe",
+            "desc": "",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Räucherlachs-Avocado Salat",
+              "desc": ""
+            },
+            {
+              "name": "Wassermelone-Feta Salat",
+              "desc": ""
+            },
+            {
+              "name": "Crispy Kichererbsen Salat",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Steirisches Wurzelfleisch",
+              "desc": "Salzkartoffel | Kren",
+              "int": 7.4,
+              "ext": 14.4
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Landhuhnbrust",
+              "desc": "Karotten | Wirsing | Trüffeljus",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Rigatoni \"Cacio e Peppe\"",
+              "desc": "Panna Sauce | Spargel",
+              "int": 6.7,
+              "ext": 11.6
+            },
+            {
+              "slot": "Special",
+              "name": "hausgemachte Marillenknödel",
+              "desc": "",
+              "int": 5.0,
+              "ext": 9.7
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Zitronentarte",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Weißes Schokoladenmousse",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-07-03",
+          "weekday": "Freitag",
+          "soup": {
+            "name": "Tomaten Fenchel Suppe",
+            "desc": "Schwarzbrot Croutons",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Gegrillter Zander",
+              "desc": "Fenchel Gemüse | Karfiolmousseline",
+              "int": 9.4,
+              "ext": 18.2
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Schweinefiletspitzen",
+              "desc": "Pfeffersauce | Rahmerdäpfel |Ofengemüse",
+              "int": 7.4,
+              "ext": 14.4
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Erdäpfel-Krautstrudel",
+              "desc": "Paprika Sauce | Krautsalat",
+              "int": 6.7,
+              "ext": 11.6
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Käsekuchen",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Amerikanischer Zimt-Apfelkuchen",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

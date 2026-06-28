@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stützpunkt</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <header>
+      <div class="header-inner glass">
+        <div class="header-title">
+          <span class="header-icon" aria-hidden="true">🍽</span>
+          <h1>Stützpunkt</h1>
+        </div>
+        <p id="scraped-at" class="scraped-at"></p>
+      </div>
+    </header>
+
+    <nav id="day-nav" aria-label="Tag auswählen" hidden></nav>
+
+    <main id="day-panel" aria-live="polite" hidden></main>
+
+    <aside id="summary" class="glass" aria-label="Zusammenfassung" hidden>
+      <div class="summary-grid">
+        <div class="sum-row">
+          <span class="sum-label">Warenkorb</span>
+          <span id="sum-wk" class="sum-value">0,00&nbsp;€</span>
+        </div>
+        <div class="sum-row">
+          <span class="sum-label">Du zahlst</span>
+          <span id="sum-zb" class="sum-value sum-highlight">0,00&nbsp;€</span>
+        </div>
+      </div>
+
+      <div class="progress-wrap" aria-label="Fortschritt zum Sweet Spot">
+        <div class="progress-track">
+          <div id="progress-fill" class="progress-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-meta">
+          <span id="progress-left" class="progress-left"></span>
+          <span id="progress-right" class="progress-right"></span>
+        </div>
+      </div>
+
+      <div id="obst-info" class="obst-info"></div>
+    </aside>
+
+    <div id="loading" class="loading-state">Lade Speiseplan …</div>
+    <div id="error-msg" class="error-state" hidden></div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
