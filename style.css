@@ -190,39 +190,15 @@ h1 {
 }
 .dish-card.active .dish-unit-price { color: var(--teal-dim); }
 
-/* ── Salat selector ──────────────────────────────────────────────────── */
+/* ── Salat section ───────────────────────────────────────────────────── */
 .salat-items {
   font-size: .8rem;
   color: var(--text-dim);
   line-height: 1.4;
 }
-.salat-picker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .4rem;
-}
-.radio-pill {
-  cursor: pointer;
-  display: inline-block;
-}
-.radio-pill input[type="radio"] { display: none; }
-.radio-pill span {
-  display: block;
-  padding: .3rem .8rem;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-pill);
-  font-size: .82rem;
-  color: var(--text-dim);
-  background: var(--glass-bg);
-  transition: background .15s, border-color .15s, color .15s;
-}
-.radio-pill:hover span { background: var(--glass-bg-hover); color: var(--text); }
-.radio-pill input:checked + span {
-  background: var(--glass-bg-active);
-  border-color: var(--glass-border-active);
-  color: var(--teal);
-  font-weight: 600;
-}
+.salat-steppers { margin-top: .1rem; }
+/* active-row: teal label when count > 0 */
+.stepper-row.active-row .stepper-label { color: var(--teal); font-weight: 600; }
 
 /* ── Mains list ──────────────────────────────────────────────────────── */
 .mains-list {
@@ -364,7 +340,15 @@ h1 {
   font-weight: 600;
 }
 .obst-costs {
+  display: block;
   color: var(--text-dim);
+}
+.sweet-spot-over {
+  display: block;
+  font-size: .8rem;
+  color: #f87171;
+  margin-top: .25rem;
+  font-weight: 500;
 }
 
 /* ── Loading / Error ─────────────────────────────────────────────────── */

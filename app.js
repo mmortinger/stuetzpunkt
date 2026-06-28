@@ -6,14 +6,15 @@ let menuData = null;   // menu.json
 let allDays  = [];     // flat list: [{...dayFields, weekIdx}]
 
 const cart = {
-  dayIdx:   0,
-  soup:     0,       // count (was bool)
-  salat:    null,    // null | 'klein' | 'gross'
-  mains:    [],      // number[] — count per main item (was mainIdx)
-  desserts: [],      // number[] — count per dessert (was bool[])
-  obst:     0,
-  gebaeck:  0,
-  oj:       0,
+  dayIdx:     0,
+  soup:       0,   // count
+  salatKlein: 0,   // count (replaces salat: null|'klein'|'gross')
+  salatGross: 0,
+  mains:      [],  // number[] — count per main item
+  desserts:   [],  // number[] — count per dessert
+  obst:       0,
+  gebaeck:    0,
+  oj:         0,
 };
 
 // ── Formatting ────────────────────────────────────────────────────────────────
@@ -31,8 +32,8 @@ function calcWarenkorb() {
 
   if (cart.soup > 0 && day.soup?.int != null)
     wk += cart.soup * day.soup.int;
-  if (cart.salat === 'klein') wk += p.salat_klein;
-  if (cart.salat === 'gross') wk += p.salat_gross;
+  wk += cart.salatKlein * p.salat_klein;
+  wk += cart.salatGross * p.salat_gross;
   day.mains.forEach((m, i) => {
     if (cart.mains[i] > 0 && m.int != null) wk += cart.mains[i] * m.int;
   });
@@ -57,9 +58,10 @@ function sweetSpot() {
 // ── Cart helpers ──────────────────────────────────────────────────────────────
 function resetCart() {
   const day = allDays[cart.dayIdx];
-  cart.soup     = 0;
-  cart.salat    = null;
-  cart.mains    = day.mains.map(() => 0);
+  cart.soup       = 0;
+  cart.salatKlein = 0;
+  cart.salatGross = 0;
+  cart.mains      = day.mains.map(() => 0);
   cart.desserts = day.desserts.map(() => 0);
   cart.obst     = 0;
   cart.gebaeck  = 0;
@@ -164,24 +166,26 @@ function renderDayPanel() {
   // ── Salat ────
   if (day.salads.length) {
     const saladNames = day.salads.map(s => esc(s.name)).join(' · ');
-    const opts = [
-      { val: 'null',  label: 'Kein',  price: null },
-      { val: 'klein', label: 'Klein', price: p.salat_klein },
-      { val: 'gross', label: 'Groß',  price: p.salat_gross },
-    ].map(o => {
-      const checked  = o.val === 'null' ? cart.salat === null : cart.salat === o.val;
-      const priceStr = o.price != null ? ` · ${fmt(o.price)}` : '';
-      return `<label class="radio-pill">
-        <input type="radio" name="salat" value="${o.val}" ${checked ? 'checked' : ''}
-          data-action="salat" data-val="${o.val}">
-        <span>${o.label}${priceStr}</span>
-      </label>`;
-    }).join('');
+    const salatRows = [
+      { field: 'salatKlein', label: 'Klein', price: p.salat_klein, val: cart.salatKlein },
+      { field: 'salatGross', label: 'Groß',  price: p.salat_gross, val: cart.salatGross },
+    ].map(s => `
+      <div class="stepper-row${s.val > 0 ? ' active-row' : ''}">
+        <span class="stepper-label">${s.label}</span>
+        <div class="stepper">
+          <button class="stepper-btn" data-action="stepper" data-field="${s.field}" data-delta="-1"
+            aria-label="Salat ${s.label} verringern">−</button>
+          <span class="stepper-val" id="stepper-${s.field}">${s.val}</span>
+          <button class="stepper-btn" data-action="stepper" data-field="${s.field}" data-delta="1"
+            aria-label="Salat ${s.label} hinzufügen">+</button>
+        </div>
+        <span class="stepper-price">${fmt(s.price)}/Stk.</span>
+      </div>`).join('');
     sections.push(`
       <section class="menu-section glass">
         <h2 class="section-title">Salatbuffet</h2>
         <div class="salat-items">${saladNames}</div>
-        <div class="salat-picker">${opts}</div>
+        <div class="steppers-grid salat-steppers">${salatRows}</div>
       </section>`);
   }
 
@@ -242,7 +246,7 @@ function renderDayPanel() {
   // ── Extras ────
   const steppers = [
     { field: 'obst',    emoji: '🍎', label: 'Obst',        price: p.obst_stueck,      val: cart.obst },
-    { field: 'gebaeck', emoji: '🥐', label: 'Gebäck',      price: p.gebaeck_stueck,   val: cart.gebaeck },
+    { field: 'gebaeck', emoji: '🥖', label: 'Gebäck',      price: p.gebaeck_stueck,   val: cart.gebaeck },
     { field: 'oj',      emoji: '🍊', label: 'Orangensaft', price: p.orangensaft_glas, val: cart.oj },
   ].map(s => `
     <div class="stepper-row">
@@ -292,9 +296,11 @@ function renderSummary() {
     infoEl.innerHTML =
       `<span class="obst-gratis">Noch ${obstGratis} Stück Obst gratis möglich 🍎</span>`;
   } else if (wk >= ss) {
-    const sign = nextCost > 0 ? '+' : '';
+    const overflow = wk - ss;
+    const sign     = nextCost > 0 ? '+' : '';
     infoEl.innerHTML =
-      `<span class="obst-costs">Stück Obst Nr. ${cart.obst + 1} kostet ${sign}${nextCost.toFixed(2).replace('.', ',')} €</span>`;
+      `<span class="obst-costs">Stück Obst Nr. ${cart.obst + 1} kostet ${sign}${nextCost.toFixed(2).replace('.', ',')} €</span>` +
+      `<span class="sweet-spot-over">+${overflow.toFixed(2).replace('.', ',')} € über Sweet Spot</span>`;
   } else {
     infoEl.innerHTML = '';
   }
@@ -365,15 +371,6 @@ document.addEventListener('click', e => {
   }
 });
 
-// Salat-Radio via change event
-document.addEventListener('change', e => {
-  const el = e.target;
-  if (el.dataset.action === 'salat') {
-    const v = el.dataset.val;
-    cart.salat = v === 'null' ? null : v;
-    renderSummary();
-  }
-});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
