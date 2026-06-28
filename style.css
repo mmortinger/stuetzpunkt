@@ -150,56 +150,45 @@ h1 {
   color: var(--text-muted);
 }
 
-/* ── Dish toggle (soup, dessert) ─────────────────────────────────────── */
-.dish-toggle {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
-  column-gap: .75rem;
+/* ── Dish card (soup, mains, desserts — all with steppers) ───────────── */
+.dish-card {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
   padding: .65rem .8rem;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-align: left;
   transition: background .15s, border-color .15s;
-  width: 100%;
 }
-.dish-toggle:hover { background: var(--glass-bg-hover); }
-.dish-toggle.active {
+.dish-card.active {
   background: var(--glass-bg-active);
   border-color: var(--glass-border-active);
 }
+.dish-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+}
 .dish-name {
-  grid-column: 1; grid-row: 1;
   font-size: .92rem;
   font-weight: 500;
   color: var(--text);
-  .dish-toggle.active & { color: var(--teal); }
 }
-.dish-toggle.active .dish-name { color: var(--teal); }
+.dish-card.active .dish-name { color: var(--teal); }
 .dish-desc {
-  grid-column: 1; grid-row: 2;
   font-size: .78rem;
   color: var(--text-dim);
 }
-.dish-price {
-  grid-column: 2; grid-row: 1 / span 2;
-  font-size: .88rem;
-  font-weight: 600;
-  color: var(--text-dim);
-  white-space: nowrap;
-  align-self: center;
+.dish-unit-price {
+  font-size: .75rem;
+  color: var(--text-muted);
+  margin-top: .05rem;
 }
-.dish-toggle.active .dish-price { color: var(--teal); }
-
-/* ── Check indicator on dish toggles ────────────────────────────────── */
-.dish-toggle::before {
-  content: '';
-  grid-column: 1; grid-row: 1 / span 2;
-  display: none; /* not needed: border color shows it */
-}
+.dish-card.active .dish-unit-price { color: var(--teal-dim); }
 
 /* ── Salat selector ──────────────────────────────────────────────────── */
 .salat-items {
@@ -235,68 +224,20 @@ h1 {
   font-weight: 600;
 }
 
-/* ── Mains (radio list) ──────────────────────────────────────────────── */
+/* ── Mains list ──────────────────────────────────────────────────────── */
 .mains-list {
   display: flex;
   flex-direction: column;
   gap: .4rem;
 }
-.main-item {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  cursor: pointer;
-}
-.main-item input[type="radio"] { display: none; }
-.main-card {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
-  column-gap: .75rem;
-  padding: .6rem .8rem;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  background: var(--glass-bg);
-  transition: background .15s, border-color .15s;
-  cursor: pointer;
-  width: 100%;
-}
-.main-card:hover { background: var(--glass-bg-hover); }
-input[type="radio"]:checked ~ .main-card,
-.main-card.active {
-  background: var(--glass-bg-active);
-  border-color: var(--glass-border-active);
-}
 .main-slot {
-  grid-column: 1; grid-row: 1;
   font-size: .68rem;
   font-weight: 700;
   letter-spacing: .05em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
-.main-name {
-  grid-column: 1; grid-row: 2;
-  font-size: .9rem;
-  font-weight: 500;
-  color: var(--text);
-}
-.main-desc {
-  font-size: .78rem;
-  color: var(--text-dim);
-  grid-column: 1; grid-row: 3;
-}
-.main-price {
-  grid-column: 2; grid-row: 1 / span 3;
-  font-size: .88rem;
-  font-weight: 600;
-  color: var(--text-dim);
-  white-space: nowrap;
-  align-self: center;
-}
-input[type="radio"]:checked ~ .main-card .main-name { color: var(--teal); }
-input[type="radio"]:checked ~ .main-card .main-price { color: var(--teal); }
+.dish-card.active .main-slot { color: var(--teal-dim); }
 
 /* ── Stepper ─────────────────────────────────────────────────────────── */
 .steppers-grid {

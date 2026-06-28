@@ -7,19 +7,19 @@ let allDays  = [];     // flat list: [{...dayFields, weekIdx}]
 
 const cart = {
   dayIdx:   0,
-  soup:     false,
-  salat:    null,   // null | 'klein' | 'gross'
-  mainIdx:  null,   // null | number (index into day.mains)
-  desserts: [],     // boolean[]
+  soup:     0,       // count (was bool)
+  salat:    null,    // null | 'klein' | 'gross'
+  mains:    [],      // number[] — count per main item (was mainIdx)
+  desserts: [],      // number[] — count per dessert (was bool[])
   obst:     0,
   gebaeck:  0,
-  oj:       0,      // orangensaft
+  oj:       0,
 };
 
 // ── Formatting ────────────────────────────────────────────────────────────────
-const fmt   = v => v.toFixed(2).replace('.', ',') + ' €';
-const fmtDt = iso => {                          // '2026-06-22' → '22.06.'
-  const [y, m, d] = iso.split('-');
+const fmt   = v => v.toFixed(2).replace('.', ',') + ' €';
+const fmtDt = iso => {
+  const [, m, d] = iso.split('-');
   return `${d}.${m}.`;
 };
 
@@ -29,13 +29,15 @@ function calcWarenkorb() {
   const p   = cfg.preise_fix;
   let wk    = 0;
 
-  if (cart.soup && day.soup?.int != null)           wk += day.soup.int;
-  if (cart.salat === 'klein')                       wk += p.salat_klein;
-  if (cart.salat === 'gross')                       wk += p.salat_gross;
-  if (cart.mainIdx != null && day.mains[cart.mainIdx]?.int != null)
-                                                    wk += day.mains[cart.mainIdx].int;
-  cart.desserts.forEach((on, i) => {
-    if (on && day.desserts[i]?.int != null)         wk += day.desserts[i].int;
+  if (cart.soup > 0 && day.soup?.int != null)
+    wk += cart.soup * day.soup.int;
+  if (cart.salat === 'klein') wk += p.salat_klein;
+  if (cart.salat === 'gross') wk += p.salat_gross;
+  day.mains.forEach((m, i) => {
+    if (cart.mains[i] > 0 && m.int != null) wk += cart.mains[i] * m.int;
+  });
+  day.desserts.forEach((d, i) => {
+    if (cart.desserts[i] > 0 && d.int != null) wk += cart.desserts[i] * d.int;
   });
   wk += cart.obst    * p.obst_stueck;
   wk += cart.gebaeck * p.gebaeck_stueck;
@@ -55,10 +57,10 @@ function sweetSpot() {
 // ── Cart helpers ──────────────────────────────────────────────────────────────
 function resetCart() {
   const day = allDays[cart.dayIdx];
-  cart.soup     = false;
+  cart.soup     = 0;
   cart.salat    = null;
-  cart.mainIdx  = null;
-  cart.desserts = day.desserts.map(() => false);
+  cart.mains    = day.mains.map(() => 0);
+  cart.desserts = day.desserts.map(() => 0);
   cart.obst     = 0;
   cart.gebaeck  = 0;
   cart.oj       = 0;
@@ -69,31 +71,34 @@ function selectDefaultDay() {
   const todayISO = new Date().toISOString().slice(0, 10);
   let idx = allDays.findIndex(d => d.date === todayISO);
   if (idx >= 0) return idx;
-  // next future day
   idx = allDays.findIndex(d => d.date > todayISO);
   return idx >= 0 ? idx : 0;
 }
 
+// ── HTML escaping ─────────────────────────────────────────────────────────────
+function esc(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 // ── Rendering — day nav ───────────────────────────────────────────────────────
 function renderDayNav() {
-  const nav = document.getElementById('day-nav');
+  const nav      = document.getElementById('day-nav');
   const todayISO = new Date().toISOString().slice(0, 10);
 
-  // Group into weeks
-  const weeks = menuData.weeks.map((w, wi) =>
-    w.days.map(d => ({ ...d, weekIdx: wi }))
-  );
-
-  nav.innerHTML = weeks.map(weekDays => {
-    const tabs = weekDays.map(day => {
+  nav.innerHTML = menuData.weeks.map(w => {
+    const tabs = w.days.map(day => {
       const globalIdx = allDays.findIndex(d => d.date === day.date);
       const isPast    = day.date < todayISO;
       const isActive  = globalIdx === cart.dayIdx;
-      const shortDay  = day.weekday.slice(0, 2);   // 'Mo', 'Di', …
+      const shortDay  = day.weekday.slice(0, 2);
       return `<button
         class="day-tab${isActive ? ' active' : ''}${isPast ? ' past' : ''}"
-        data-action="select-day"
-        data-idx="${globalIdx}"
+        data-action="select-day" data-idx="${globalIdx}"
         aria-pressed="${isActive}"
         aria-label="${day.weekday} ${fmtDt(day.date)}"
       >${shortDay} ${fmtDt(day.date)}</button>`;
@@ -102,27 +107,57 @@ function renderDayNav() {
   }).join('');
 }
 
+// ── Dish card helper ──────────────────────────────────────────────────────────
+function dishCard({ id, active, slotLabel, name, desc, unitPrice, field, idx }) {
+  const idxAttr  = idx !== undefined ? ` data-idx="${idx}"` : '';
+  const idStr    = id ? ` id="${id}"` : '';
+  const valId    = id ? `id="${id}-val"` : '';
+  return `
+    <div class="dish-card${active ? ' active' : ''}"${idStr}>
+      <div class="dish-info">
+        ${slotLabel ? `<span class="main-slot">${esc(slotLabel)}</span>` : ''}
+        <span class="dish-name">${esc(name)}</span>
+        ${desc ? `<span class="dish-desc">${esc(desc)}</span>` : ''}
+        ${unitPrice != null ? `<span class="dish-unit-price">${fmt(unitPrice)}/Stk.</span>` : ''}
+      </div>
+      <div class="stepper">
+        <button class="stepper-btn"
+          data-action="stepper-dish" data-field="${field}"${idxAttr} data-delta="-1"
+          aria-label="${esc(name)} verringern">−</button>
+        <span class="stepper-val" ${valId}>${active && idx === undefined ? cart.soup : (idx !== undefined && field === 'main' ? cart.mains[idx] : (idx !== undefined ? cart.desserts[idx] : 0))}</span>
+        <button class="stepper-btn"
+          data-action="stepper-dish" data-field="${field}"${idxAttr} data-delta="1"
+          aria-label="${esc(name)} erhöhen">+</button>
+      </div>
+    </div>`;
+}
+
 // ── Rendering — menu panel ────────────────────────────────────────────────────
 function renderDayPanel() {
   const panel = document.getElementById('day-panel');
   const day   = allDays[cart.dayIdx];
   const p     = cfg.preise_fix;
-
   const sections = [];
 
   // ── Suppe ────
   if (day.soup) {
-    const active = cart.soup;
-    const price  = day.soup.int != null ? fmt(day.soup.int) : '—';
     sections.push(`
       <section class="menu-section glass">
         <h2 class="section-title">Suppe</h2>
-        <button class="dish-toggle${active ? ' active' : ''}"
-          data-action="toggle-soup" aria-pressed="${active}">
-          <span class="dish-name">${esc(day.soup.name)}</span>
-          <span class="dish-desc">${esc(day.soup.desc)}</span>
-          <span class="dish-price">${price}</span>
-        </button>
+        <div class="dish-card${cart.soup > 0 ? ' active' : ''}" id="dish-soup">
+          <div class="dish-info">
+            <span class="dish-name">${esc(day.soup.name)}</span>
+            ${day.soup.desc ? `<span class="dish-desc">${esc(day.soup.desc)}</span>` : ''}
+            ${day.soup.int != null ? `<span class="dish-unit-price">${fmt(day.soup.int)}/Stk.</span>` : ''}
+          </div>
+          <div class="stepper">
+            <button class="stepper-btn" data-action="stepper-dish" data-field="soup" data-delta="-1"
+              aria-label="Suppe verringern">−</button>
+            <span class="stepper-val" id="dish-soup-val">${cart.soup}</span>
+            <button class="stepper-btn" data-action="stepper-dish" data-field="soup" data-delta="1"
+              aria-label="Suppe hinzufügen">+</button>
+          </div>
+        </div>
       </section>`);
   }
 
@@ -134,7 +169,7 @@ function renderDayPanel() {
       { val: 'klein', label: 'Klein', price: p.salat_klein },
       { val: 'gross', label: 'Groß',  price: p.salat_gross },
     ].map(o => {
-      const checked = (o.val === 'null' ? cart.salat === null : cart.salat === o.val);
+      const checked  = o.val === 'null' ? cart.salat === null : cart.salat === o.val;
       const priceStr = o.price != null ? ` · ${fmt(o.price)}` : '';
       return `<label class="radio-pill">
         <input type="radio" name="salat" value="${o.val}" ${checked ? 'checked' : ''}
@@ -142,7 +177,6 @@ function renderDayPanel() {
         <span>${o.label}${priceStr}</span>
       </label>`;
     }).join('');
-
     sections.push(`
       <section class="menu-section glass">
         <h2 class="section-title">Salatbuffet</h2>
@@ -154,20 +188,24 @@ function renderDayPanel() {
   // ── Hauptspeise ────
   if (day.mains.length) {
     const items = day.mains.map((m, i) => {
-      const checked = cart.mainIdx === i;
-      const price   = m.int != null ? fmt(m.int) : '—';
-      return `<label class="main-item" aria-label="${esc(m.slot)}: ${esc(m.name)}">
-        <input type="radio" name="main" value="${i}" ${checked ? 'checked' : ''}
-          data-action="main" data-idx="${i}">
-        <div class="main-card${checked ? ' active' : ''}">
-          <span class="main-slot">${esc(m.slot)}</span>
-          <span class="main-name">${esc(m.name)}</span>
-          ${m.desc ? `<span class="main-desc">${esc(m.desc)}</span>` : ''}
-          <span class="main-price">${price}</span>
-        </div>
-      </label>`;
+      const active = cart.mains[i] > 0;
+      return `
+        <div class="dish-card${active ? ' active' : ''}" id="dish-main-${i}">
+          <div class="dish-info">
+            <span class="main-slot">${esc(m.slot)}</span>
+            <span class="dish-name">${esc(m.name)}</span>
+            ${m.desc ? `<span class="dish-desc">${esc(m.desc)}</span>` : ''}
+            ${m.int != null ? `<span class="dish-unit-price">${fmt(m.int)}/Stk.</span>` : ''}
+          </div>
+          <div class="stepper">
+            <button class="stepper-btn" data-action="stepper-dish" data-field="main" data-idx="${i}" data-delta="-1"
+              aria-label="${esc(m.name)} verringern">−</button>
+            <span class="stepper-val" id="dish-main-${i}-val">${cart.mains[i]}</span>
+            <button class="stepper-btn" data-action="stepper-dish" data-field="main" data-idx="${i}" data-delta="1"
+              aria-label="${esc(m.name)} hinzufügen">+</button>
+          </div>
+        </div>`;
     }).join('');
-
     sections.push(`
       <section class="menu-section glass">
         <h2 class="section-title">Hauptspeise</h2>
@@ -175,19 +213,25 @@ function renderDayPanel() {
       </section>`);
   }
 
-  // ── Desserts ────
+  // ── Dessert ────
   if (day.desserts.length) {
     const items = day.desserts.map((d, i) => {
-      const active = !!cart.desserts[i];
-      const price  = d.int != null ? fmt(d.int) : '—';
-      return `<button class="dish-toggle${active ? ' active' : ''}"
-        data-action="toggle-dessert" data-idx="${i}" aria-pressed="${active}">
-        <span class="dish-name">${esc(d.name)}</span>
-        <span class="dish-desc"></span>
-        <span class="dish-price">${price}</span>
-      </button>`;
+      const active = cart.desserts[i] > 0;
+      return `
+        <div class="dish-card${active ? ' active' : ''}" id="dish-dessert-${i}">
+          <div class="dish-info">
+            <span class="dish-name">${esc(d.name)}</span>
+            ${d.int != null ? `<span class="dish-unit-price">${fmt(d.int)}/Stk.</span>` : ''}
+          </div>
+          <div class="stepper">
+            <button class="stepper-btn" data-action="stepper-dish" data-field="dessert" data-idx="${i}" data-delta="-1"
+              aria-label="${esc(d.name)} verringern">−</button>
+            <span class="stepper-val" id="dish-dessert-${i}-val">${cart.desserts[i]}</span>
+            <button class="stepper-btn" data-action="stepper-dish" data-field="dessert" data-idx="${i}" data-delta="1"
+              aria-label="${esc(d.name)} hinzufügen">+</button>
+          </div>
+        </div>`;
     }).join('');
-
     sections.push(`
       <section class="menu-section glass">
         <h2 class="section-title">Dessert</h2>
@@ -195,7 +239,7 @@ function renderDayPanel() {
       </section>`);
   }
 
-  // ── Extras (steppers) ────
+  // ── Extras ────
   const steppers = [
     { field: 'obst',    emoji: '🍎', label: 'Obst',        price: p.obst_stueck,      val: cart.obst },
     { field: 'gebaeck', emoji: '🥐', label: 'Gebäck',      price: p.gebaeck_stueck,   val: cart.gebaeck },
@@ -232,16 +276,14 @@ function renderSummary() {
   document.getElementById('sum-wk').textContent = fmt(wk);
   document.getElementById('sum-zb').textContent = fmt(zb);
 
-  // Progress bar
-  const pct    = Math.min(100, (wk / ss) * 100);
-  const fill   = document.getElementById('progress-fill');
+  const pct  = Math.min(100, (wk / ss) * 100);
+  const fill = document.getElementById('progress-fill');
   fill.style.width = pct.toFixed(1) + '%';
   fill.classList.toggle('over', wk > ss);
 
   document.getElementById('progress-left').textContent  = fmt(wk);
   document.getElementById('progress-right').textContent = `Sweet Spot ${fmt(ss)}`;
 
-  // Obst info
   const obstGratis = Math.max(0, Math.floor((ss - wk) / p.obst_stueck));
   const nextCost   = zahlbetrag(wk + p.obst_stueck) - zb;
   const infoEl     = document.getElementById('obst-info');
@@ -250,36 +292,21 @@ function renderSummary() {
     infoEl.innerHTML =
       `<span class="obst-gratis">Noch ${obstGratis} Stück Obst gratis möglich 🍎</span>`;
   } else if (wk >= ss) {
-    const nextFmt = fmtPlus(nextCost);
+    const sign = nextCost > 0 ? '+' : '';
     infoEl.innerHTML =
-      `<span class="obst-costs">Stück Obst Nr. ${cart.obst + 1} kostet ${nextFmt}</span>`;
+      `<span class="obst-costs">Stück Obst Nr. ${cart.obst + 1} kostet ${sign}${nextCost.toFixed(2).replace('.', ',')} €</span>`;
   } else {
     infoEl.innerHTML = '';
   }
 }
 
-function fmtPlus(v) {
-  return '+' + v.toFixed(2).replace('.', ',') + ' €';
-}
-
-// ── Render all ────────────────────────────────────────────────────────────────
 function render() {
   renderDayNav();
   renderDayPanel();
   renderSummary();
 }
 
-// ── HTML escaping ─────────────────────────────────────────────────────────────
-function esc(str) {
-  if (!str) return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-// ── Event handling (delegation) ───────────────────────────────────────────────
+// ── Event handling ────────────────────────────────────────────────────────────
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
   if (!el) return;
@@ -296,23 +323,7 @@ document.addEventListener('click', e => {
     return;
   }
 
-  if (action === 'toggle-soup') {
-    cart.soup = !cart.soup;
-    el.classList.toggle('active', cart.soup);
-    el.setAttribute('aria-pressed', cart.soup);
-    renderSummary();
-    return;
-  }
-
-  if (action === 'toggle-dessert') {
-    const i = parseInt(el.dataset.idx, 10);
-    cart.desserts[i] = !cart.desserts[i];
-    el.classList.toggle('active', cart.desserts[i]);
-    el.setAttribute('aria-pressed', cart.desserts[i]);
-    renderSummary();
-    return;
-  }
-
+  // Extras stepper (obst / gebaeck / oj)
   if (action === 'stepper') {
     const field = el.dataset.field;
     const delta = parseInt(el.dataset.delta, 10);
@@ -322,29 +333,45 @@ document.addEventListener('click', e => {
     renderSummary();
     return;
   }
+
+  // Dish stepper (soup / main / dessert)
+  if (action === 'stepper-dish') {
+    const field = el.dataset.field;
+    const delta = parseInt(el.dataset.delta, 10);
+    const idx   = el.dataset.idx !== undefined ? parseInt(el.dataset.idx, 10) : null;
+
+    if (field === 'soup') {
+      cart.soup = Math.max(0, cart.soup + delta);
+      const valEl  = document.getElementById('dish-soup-val');
+      const cardEl = document.getElementById('dish-soup');
+      if (valEl)  valEl.textContent = cart.soup;
+      if (cardEl) cardEl.classList.toggle('active', cart.soup > 0);
+    } else if (field === 'main') {
+      cart.mains[idx] = Math.max(0, cart.mains[idx] + delta);
+      const valEl  = document.getElementById(`dish-main-${idx}-val`);
+      const cardEl = document.getElementById(`dish-main-${idx}`);
+      if (valEl)  valEl.textContent = cart.mains[idx];
+      if (cardEl) cardEl.classList.toggle('active', cart.mains[idx] > 0);
+    } else if (field === 'dessert') {
+      cart.desserts[idx] = Math.max(0, cart.desserts[idx] + delta);
+      const valEl  = document.getElementById(`dish-dessert-${idx}-val`);
+      const cardEl = document.getElementById(`dish-dessert-${idx}`);
+      if (valEl)  valEl.textContent = cart.desserts[idx];
+      if (cardEl) cardEl.classList.toggle('active', cart.desserts[idx] > 0);
+    }
+
+    renderSummary();
+    return;
+  }
 });
 
-// Radio inputs need 'change', not click
+// Salat-Radio via change event
 document.addEventListener('change', e => {
   const el = e.target;
-  if (!el.dataset.action) return;
-
   if (el.dataset.action === 'salat') {
     const v = el.dataset.val;
     cart.salat = v === 'null' ? null : v;
     renderSummary();
-    return;
-  }
-
-  if (el.dataset.action === 'main') {
-    const idx = parseInt(el.dataset.idx, 10);
-    cart.mainIdx = idx;
-    // Update active class on main cards
-    document.querySelectorAll('.main-card').forEach((card, i) => {
-      card.classList.toggle('active', i === idx);
-    });
-    renderSummary();
-    return;
   }
 });
 
@@ -352,14 +379,11 @@ document.addEventListener('change', e => {
 async function init() {
   const loadingEl = document.getElementById('loading');
   const errorEl   = document.getElementById('error-msg');
-  const appEl     = document.getElementById('day-panel');
-  const summaryEl = document.getElementById('summary');
-  const navEl     = document.getElementById('day-nav');
 
   try {
     [cfg, menuData] = await Promise.all([
       fetch('config.json').then(r => { if (!r.ok) throw new Error('config.json: ' + r.status); return r.json(); }),
-      fetch('menu.json').then(r => { if (!r.ok) throw new Error('menu.json: ' + r.status); return r.json(); }),
+      fetch('menu.json').then(r  => { if (!r.ok) throw new Error('menu.json: '   + r.status); return r.json(); }),
     ]);
   } catch (err) {
     loadingEl.hidden = true;
@@ -368,7 +392,6 @@ async function init() {
     return;
   }
 
-  // Flatten days
   allDays = menuData.weeks.flatMap((w, wi) =>
     w.days.map(d => ({ ...d, weekIdx: wi }))
   );
@@ -383,17 +406,16 @@ async function init() {
   cart.dayIdx = selectDefaultDay();
   resetCart();
 
-  // Show scraped_at
   if (menuData.scraped_at) {
     const dt = new Date(menuData.scraped_at);
     document.getElementById('scraped-at').textContent =
       'Stand: ' + dt.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   }
 
-  loadingEl.hidden  = true;
-  navEl.hidden      = false;
-  appEl.hidden      = false;
-  summaryEl.hidden  = false;
+  loadingEl.hidden = true;
+  document.getElementById('day-nav').hidden     = false;
+  document.getElementById('day-panel').hidden   = false;
+  document.getElementById('summary').hidden     = false;
 
   render();
 }
