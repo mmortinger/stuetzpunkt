@@ -1,5 +1,5 @@
 {
-  "scraped_at": "2026-06-29T07:45:00.129311+00:00",
+  "scraped_at": "2026-06-29T16:45:26.260024+00:00",
   "weeks": [
     {
       "week_start": "2026-06-29",
@@ -339,8 +339,8 @@
           "soup": {
             "name": "Broccoli Erbsen Suppe",
             "desc": "Schwarzbrot Croutons",
-            "int": 2.4,
-            "ext": 4.8
+            "int": 2.5,
+            "ext": 5.0
           },
           "salads": [
             {
@@ -365,34 +365,34 @@
               "slot": "Hauptspeise 1",
               "name": "Gegrillter Saibling",
               "desc": "Tomaten Gemüse | Safran Mousseline",
-              "int": 9.0,
-              "ext": 17.5
+              "int": 9.4,
+              "ext": 18.2
             },
             {
               "slot": "Hauptspeise 2",
               "name": "Gelbes Hühner Curry",
               "desc": "Jasmin Reis | Zucchini",
               "int": 7.4,
-              "ext": 14.3
+              "ext": 14.4
             },
             {
               "slot": "Vegetarisch / Vegan",
               "name": "Melanzani Lasagne",
               "desc": "Tomatensalsa",
-              "int": 6.4,
-              "ext": 11.1
+              "int": 6.7,
+              "ext": 11.6
             }
           ],
           "desserts": [
             {
               "name": "Schokoladen–Bananenkuchen",
-              "int": 2.9,
-              "ext": 4.8
+              "int": 3.1,
+              "ext": 5.0
             },
             {
               "name": "Noisette Mousse",
-              "int": 4.1,
-              "ext": 5.2
+              "int": 4.3,
+              "ext": 5.4
             }
           ]
         },
@@ -402,8 +402,8 @@
           "soup": {
             "name": "Rindsuppe",
             "desc": "Kaiserschöberl | Schnittlauch",
-            "int": 2.4,
-            "ext": 4.8
+            "int": 2.5,
+            "ext": 5.0
           },
           "salads": [
             {
@@ -428,41 +428,41 @@
               "slot": "Hauptspeise 1",
               "name": "Asia Wok",
               "desc": "Schweinefiletspitzen",
-              "int": 7.4,
-              "ext": 14.3
+              "int": 7.7,
+              "ext": 14.9
             },
             {
               "slot": "Hauptspeise 2",
               "name": "Rigatoni alla Bolognese",
               "desc": "Parmesan",
-              "int": 8.2,
-              "ext": 16.1
+              "int": 8.6,
+              "ext": 16.8
             },
             {
               "slot": "Vegetarisch / Vegan",
               "name": "Linsen Spinat Curry",
               "desc": "Basmatireis | Karfiol",
-              "int": 6.4,
-              "ext": 11.1
+              "int": 6.7,
+              "ext": 11.6
             },
             {
               "slot": "Special",
               "name": "gefüllte Landhuhnbrust",
               "desc": "Sommergemüse | Thymian Jus",
-              "int": 7.1,
-              "ext": 13.8
+              "int": 7.4,
+              "ext": 14.4
             }
           ],
           "desserts": [
             {
               "name": "Traditionelles Tiramisu",
-              "int": 2.9,
-              "ext": 4.8
+              "int": 3.1,
+              "ext": 5.0
             },
             {
               "name": "Zimt-Apfelkuchen",
-              "int": 4.1,
-              "ext": 5.2
+              "int": 4.3,
+              "ext": 5.4
             }
           ]
         },
@@ -472,8 +472,8 @@
           "soup": {
             "name": "Süßkartoffel Suppe",
             "desc": "Limetten Kokosnuss Joghurt",
-            "int": 2.4,
-            "ext": 4.8
+            "int": 2.5,
+            "ext": 5.0
           },
           "salads": [
             {
@@ -512,8 +512,8 @@
               "slot": "Vegetarisch / Vegan",
               "name": "Gemüse Tagine",
               "desc": "Süßkartoffel I Couscous",
-              "int": 6.4,
-              "ext": 11.1
+              "int": 6.7,
+              "ext": 11.6
             },
             {
               "slot": "Special",
@@ -526,13 +526,13 @@
           "desserts": [
             {
               "name": "Zwetschken Kuchen",
-              "int": 2.9,
-              "ext": 4.8
+              "int": 3.1,
+              "ext": 5.0
             },
             {
               "name": "Erdbeer-Kokos Tapioka",
-              "int": 4.1,
-              "ext": 5.2
+              "int": 4.3,
+              "ext": 5.4
             }
           ]
         },
@@ -542,8 +542,8 @@
           "soup": {
             "name": "Selleriecremesuppe",
             "desc": "Kartoffelstroh",
-            "int": 2.4,
-            "ext": 4.8
+            "int": 2.5,
+            "ext": 5.0
           },
           "salads": [
             {
@@ -568,41 +568,41 @@
               "slot": "Hauptspeise 1",
               "name": "Gegrillter Leberkäse",
               "desc": "Cremespinat | Rösti",
-              "int": 7.1,
-              "ext": 13.8
+              "int": 7.4,
+              "ext": 14.4
             },
             {
               "slot": "Hauptspeise 2",
               "name": "Gekräuterte Hühnerbrust",
               "desc": "Gnocchi  | Gemüse",
-              "int": 8.2,
-              "ext": 16.1
+              "int": 8.6,
+              "ext": 16.8
             },
             {
               "slot": "Vegetarisch / Vegan",
               "name": "Penne Arrabiata",
               "desc": "Mozzarella",
-              "int": 6.4,
-              "ext": 11.1
+              "int": 6.7,
+              "ext": 11.6
             },
             {
               "slot": "Special",
               "name": "Marillenbuchtel",
               "desc": "Vanille Sauce",
-              "int": 4.8,
-              "ext": 9.3
+              "int": 5.0,
+              "ext": 9.7
             }
           ],
           "desserts": [
             {
               "name": "Himbeere Panna Cotta",
-              "int": 2.9,
-              "ext": 4.8
+              "int": 3.1,
+              "ext": 5.0
             },
             {
               "name": "Florentiner Mousse",
-              "int": 4.1,
-              "ext": 5.2
+              "int": 4.3,
+              "ext": 5.4
             }
           ]
         },
@@ -612,8 +612,8 @@
           "soup": {
             "name": "Geräucherte Paprika Suppe",
             "desc": "Zitronen Creme Fraiche",
-            "int": 2.4,
-            "ext": 4.8
+            "int": 2.5,
+            "ext": 5.0
           },
           "salads": [
             {
@@ -626,34 +626,34 @@
               "slot": "Hauptspeise 1",
               "name": "Chili Shrimps",
               "desc": "Gebratenes Gemüse | Jasminreis",
-              "int": 9.0,
-              "ext": 17.5
+              "int": 9.4,
+              "ext": 18.2
             },
             {
               "slot": "Hauptspeise 2",
               "name": "Schweinefilet a la Lemone",
               "desc": "Gratin | Ratatouille",
-              "int": 7.1,
-              "ext": 13.8
+              "int": 7.4,
+              "ext": 14.4
             },
             {
               "slot": "Vegetarisch / Vegan",
               "name": "Spinat Gnocchi",
               "desc": "Babyspinat | Panna Sauce",
-              "int": 6.4,
-              "ext": 11.1
+              "int": 6.7,
+              "ext": 11.6
             }
           ],
           "desserts": [
             {
               "name": "Bananen Walnusskuchen",
-              "int": 2.9,
-              "ext": 4.8
+              "int": 3.1,
+              "ext": 5.0
             },
             {
               "name": "Bayrische Crème",
-              "int": 4.1,
-              "ext": 5.2
+              "int": 4.3,
+              "ext": 5.4
             }
           ]
         }
