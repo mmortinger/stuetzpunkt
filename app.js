@@ -380,7 +380,7 @@ async function init() {
   try {
     [cfg, menuData] = await Promise.all([
       fetch('config.json').then(r => { if (!r.ok) throw new Error('config.json: ' + r.status); return r.json(); }),
-      fetch('menu.json').then(r  => { if (!r.ok) throw new Error('menu.json: '   + r.status); return r.json(); }),
+      fetch('menu.json?v=' + Date.now()).then(r  => { if (!r.ok) throw new Error('menu.json: '   + r.status); return r.json(); }),
     ]);
   } catch (err) {
     loadingEl.hidden = true;
