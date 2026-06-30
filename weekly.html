@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stützpunkt · Wochenübersicht</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="weekly">
+  <div id="app">
+
+    <header>
+      <div class="header-inner glass">
+        <div class="header-title">
+          <span class="header-icon" aria-hidden="true">🍽</span>
+          <h1>Stützpunkt</h1>
+        </div>
+        <p id="scraped-at" class="scraped-at"></p>
+      </div>
+    </header>
+
+    <nav class="site-nav glass" aria-label="Ansicht wechseln">
+      <a href="index.html">Home</a>
+      <a class="active" href="weekly.html">Wochenübersicht</a>
+    </nav>
+
+    <section id="profile-panel" class="glass" aria-label="Essensprofil" hidden></section>
+
+    <section id="weekly-recommendations" class="glass" aria-label="Wochenempfehlungen" hidden></section>
+
+    <div id="loading" class="loading-state">Lade Speiseplan …</div>
+    <div id="error-msg" class="error-state" hidden></div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

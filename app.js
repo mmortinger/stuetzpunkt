@@ -4,6 +4,32 @@
 let cfg      = null;   // config.json
 let menuData = null;   // menu.json
 let allDays  = [];     // flat list: [{...dayFields, weekIdx}]
+let currentRecommendation = null;
+let settingsOpen = false;
+const pageMode = document.body.dataset.page || 'home';
+
+const recommendationState = {
+  daily: {},
+  weekly: {},
+};
+
+const PROFILE_STORAGE_KEY = 'stuetzpunkt-profile-v1';
+const defaultProfile = {
+  diet: 'none',
+  budgetMode: 'balanced',
+  allowLargeSaladMain: false,
+  addPastryToLargeSalad: false,
+  allowDessert: true,
+  extras: {
+    fruit: true,
+    soup: false,
+    pastry: false,
+    oj: false,
+    smallSalad: false,
+  },
+};
+
+let profile = { ...defaultProfile };
 
 const cart = {
   dayIdx:     0,
@@ -55,6 +81,84 @@ function sweetSpot() {
   return cfg.min_betrag + cfg.max_stuetzung;
 }
 
+// ── Profile persistence ──────────────────────────────────────────────────────
+function normalizeProfile(data = {}) {
+  const normalized = {
+    ...defaultProfile,
+    ...data,
+    extras: {
+      ...defaultProfile.extras,
+      ...(data.extras || {}),
+    },
+  };
+
+  if (data.filler && defaultProfile.extras[data.filler] !== undefined) {
+    normalized.extras[data.filler] = true;
+  }
+  if (data.alwaysSmallSalad === true) normalized.extras.smallSalad = true;
+  if (normalized.diet === 'vegan') normalized.diet = 'vegetarian';
+
+  return normalized;
+}
+
+function safeParseProfile(raw) {
+  if (!raw) return null;
+  try {
+    const data = JSON.parse(raw);
+    return normalizeProfile(data);
+  } catch {
+    return null;
+  }
+}
+
+function encodeProfile(p) {
+  return btoa(encodeURIComponent(JSON.stringify(p)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function decodeProfile(raw) {
+  try {
+    const normalized = raw
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(raw.length / 4) * 4, '=');
+    return safeParseProfile(decodeURIComponent(atob(normalized)));
+  } catch {
+    return null;
+  }
+}
+
+function profileFromHash() {
+  const hash = window.location.hash.replace(/^#/, '');
+  const params = new URLSearchParams(hash);
+  const raw = params.get('p');
+  return raw ? decodeProfile(raw) : null;
+}
+
+function loadProfile() {
+  const fromHash = profileFromHash();
+  if (fromHash) {
+    profile = normalizeProfile(fromHash);
+    saveProfile();
+    return;
+  }
+
+  const stored = safeParseProfile(localStorage.getItem(PROFILE_STORAGE_KEY));
+  profile = stored || normalizeProfile();
+}
+
+function saveProfile() {
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+}
+
+function profileUrl() {
+  const url = new URL(window.location.href);
+  url.hash = 'p=' + encodeProfile(profile);
+  return url.toString();
+}
+
 // ── Cart helpers ──────────────────────────────────────────────────────────────
 function resetCart() {
   const day = allDays[cart.dayIdx];
@@ -66,6 +170,17 @@ function resetCart() {
   cart.obst     = 0;
   cart.gebaeck  = 0;
   cart.oj       = 0;
+}
+
+function setCartFromSelection(selection) {
+  cart.soup       = selection.soup;
+  cart.salatKlein = selection.salatKlein;
+  cart.salatGross = selection.salatGross;
+  cart.mains      = [...selection.mains];
+  cart.desserts   = [...selection.desserts];
+  cart.obst       = selection.obst;
+  cart.gebaeck    = selection.gebaeck;
+  cart.oj         = selection.oj;
 }
 
 function selectDefaultDay() {
@@ -87,9 +202,466 @@ function esc(str) {
     .replace(/"/g, '&quot;');
 }
 
+// ── Recommendation helpers ───────────────────────────────────────────────────
+function normalizedDishText(dish) {
+  return [
+    dish?.slot,
+    dish?.name,
+    dish?.desc,
+  ].filter(Boolean).join(' ').toLocaleLowerCase('de-AT');
+}
+
+function hasAny(text, words) {
+  return words.some(word => text.includes(word));
+}
+
+function classifyDish(dish) {
+  const text = normalizedDishText(dish);
+  const meatWords = [
+    'rind', 'rindsuppe', 'bolognese', 'huhn', 'hühner', 'chicken', 'panko-hühnerbrust',
+    'fleisch', 'kalb', 'schwein', 'speck', 'schinken', 'lamm', 'ente', 'coq au vin',
+    'albondigas',
+  ];
+  const fishWords = ['lachs', 'fisch', 'thunfisch', 'garnele', 'shrimp'];
+  const dairyWords = [
+    'milch', 'käse', 'kaese', 'feta', 'parmesan', 'joghurt', 'yoghurt', 'rahm',
+    'sauerrahm', 'butter', 'ricotta', 'creme', 'creme', 'österkron', 'oesterkron',
+  ];
+  const eggWords = ['spätzle', 'spaetzle'];
+  const slot = (dish?.slot || '').toLocaleLowerCase('de-AT');
+  const hasMeatOrFish = hasAny(text, meatWords) || hasAny(text, fishWords);
+  const hasDairy = hasAny(text, dairyWords);
+  const hasEgg = hasAny(text, eggWords);
+  const vegetarianSlot = slot.includes('vegetarisch') || slot.includes('vegan');
+
+  return {
+    vegetarian: vegetarianSlot || !hasMeatOrFish,
+    vegan: !hasMeatOrFish && !hasDairy && !hasEgg,
+    hasDairy,
+  };
+}
+
+function isEligibleDish(dish) {
+  const info = classifyDish(dish);
+  if (profile.diet === 'vegetarian' && !info.vegetarian) return false;
+  return true;
+}
+
+function recommendationKey(dayIdx) {
+  return allDays[dayIdx]?.date || String(dayIdx);
+}
+
+function getRecommendationState(dayIdx, scope = 'daily') {
+  const bucket = recommendationState[scope] || recommendationState.daily;
+  const key = recommendationKey(dayIdx);
+  if (!bucket[key]) bucket[key] = { preferredMainKey: null, comboOffset: 0 };
+  return bucket[key];
+}
+
+function resetRecommendationState() {
+  recommendationState.daily = {};
+  recommendationState.weekly = {};
+}
+
+function getMainChoices(day) {
+  const dishChoices = day.mains
+    .map((dish, idx) => ({
+      type: 'dish',
+      key: `main:${idx}:${dish.name}`,
+      label: dish.name,
+      dish,
+      idx,
+    }))
+    .filter(choice => choice.dish.int != null && isEligibleDish(choice.dish));
+
+  const saladChoice = profile.allowLargeSaladMain && day.salads.length
+    ? [{
+      type: 'large-salad',
+      key: 'salad:gross',
+      label: 'Großer Salat',
+      dish: null,
+      idx: -1,
+    }]
+    : [];
+
+  return [...dishChoices, ...saladChoice];
+}
+
+function emptySelection(day) {
+  return {
+    soup: 0,
+    salatKlein: 0,
+    salatGross: 0,
+    mains: day.mains.map(() => 0),
+    desserts: day.desserts.map(() => 0),
+    obst: 0,
+    gebaeck: 0,
+    oj: 0,
+  };
+}
+
+function calcSelection(selection, day) {
+  const p = cfg.preise_fix;
+  let wk = 0;
+
+  if (selection.soup > 0 && day.soup?.int != null) wk += selection.soup * day.soup.int;
+  wk += selection.salatKlein * p.salat_klein;
+  wk += selection.salatGross * p.salat_gross;
+  day.mains.forEach((m, i) => {
+    if (selection.mains[i] > 0 && m.int != null) wk += selection.mains[i] * m.int;
+  });
+  day.desserts.forEach((d, i) => {
+    if (selection.desserts[i] > 0 && d.int != null) wk += selection.desserts[i] * d.int;
+  });
+  wk += selection.obst * p.obst_stueck;
+  wk += selection.gebaeck * p.gebaeck_stueck;
+  wk += selection.oj * p.orangensaft_glas;
+
+  return Math.round(wk * 100) / 100;
+}
+
+function scoreSelection(selection, day) {
+  const wk = calcSelection(selection, day);
+  const ss = sweetSpot();
+  const hasMain = selection.mains.some(Boolean) || selection.salatGross > 0;
+  const hasSoup = selection.soup > 0;
+  const hasDessert = selection.desserts.some(Boolean);
+
+  let target = ss;
+  if (profile.budgetMode === 'under') target = ss - 0.2;
+  if (profile.budgetMode === 'over') target = ss + 0.45;
+
+  let score = Math.abs(wk - target);
+  if (!hasMain && day.mains.length) score += 18;
+
+  if (profile.budgetMode === 'under' && wk > ss) score += 5 + ((wk - ss) * 4);
+  if (profile.budgetMode === 'balanced' && wk > ss) score += 1 + ((wk - ss) * 1.5);
+  if (profile.budgetMode === 'over' && wk < ss) score += Math.max(0, ss - wk - 0.75) * 0.4;
+
+  if (selection.salatGross > 0) score += 0.45;
+  if (profile.extras.soup) score += hasSoup ? -0.35 : 0.3;
+  if (profile.extras.fruit) score += selection.obst > 0 ? -Math.min(0.5, selection.obst * 0.16) : 0.25;
+  if (profile.extras.pastry) score += selection.gebaeck > 0 ? -0.22 : 0.16;
+  if (profile.extras.oj) score += selection.oj > 0 ? -0.12 : 0.12;
+  if (profile.extras.smallSalad) score += selection.salatKlein > 0 ? -0.25 : 0.35;
+
+  if (hasDessert) score += 0.25;
+  if (selection.oj > 0) score += 0.35;
+
+  return { score, wk };
+}
+
+function buildRecommendationCandidates(dayIdx, state) {
+  const day = allDays[dayIdx];
+  if (!day) return [];
+
+  const availableMainChoices = getMainChoices(day);
+  const preferredMainChoice = state?.preferredMainKey
+    ? availableMainChoices.find(choice => choice.key === state.preferredMainKey)
+    : null;
+  const mainChoices = preferredMainChoice
+    ? [preferredMainChoice]
+    : availableMainChoices.length
+      ? availableMainChoices
+      : [{ type: 'none', key: 'main:none', label: '', dish: null, idx: -1 }];
+
+  const eligibleDesserts = day.desserts
+    .map((dish, idx) => ({ dish, idx }))
+    .filter(item => item.dish.int != null && isEligibleDish(item.dish));
+  const soupAllowed = day.soup?.int != null && isEligibleDish(day.soup);
+  const soupCounts = soupAllowed && profile.extras.soup ? [1] : [0];
+  const dessertChoices = profile.allowDessert
+    ? [{ dish: null, idx: -1 }, ...eligibleDesserts]
+    : [{ dish: null, idx: -1 }];
+  const obstCounts = profile.extras.fruit ? [0, 1, 2, 3, 4] : [0];
+  const gebaeckCounts = profile.extras.pastry ? [0, 1, 2] : [0];
+  const ojCounts = profile.extras.oj ? [0, 1] : [0];
+  const candidates = [];
+
+  mainChoices.forEach(mainChoice => {
+    soupCounts.forEach(soupCount => {
+      const smallSaladCounts = profile.extras.smallSalad && mainChoice.type !== 'large-salad' ? [1] : [0];
+      smallSaladCounts.forEach(saladCount => {
+        dessertChoices.forEach(dessertChoice => {
+          obstCounts.forEach(obst => {
+            gebaeckCounts.forEach(gebaeck => {
+              ojCounts.forEach(oj => {
+                const selection = emptySelection(day);
+                selection.soup = soupCount;
+                selection.salatKlein = saladCount;
+                selection.obst = obst;
+                selection.gebaeck = mainChoice.type === 'large-salad' && profile.addPastryToLargeSalad
+                  ? Math.max(1, gebaeck)
+                  : gebaeck;
+                selection.oj = oj;
+                if (mainChoice.type === 'dish' && mainChoice.idx >= 0) selection.mains[mainChoice.idx] = 1;
+                if (mainChoice.type === 'large-salad') selection.salatGross = 1;
+                if (dessertChoice.idx >= 0) selection.desserts[dessertChoice.idx] = 1;
+
+                const scored = scoreSelection(selection, day);
+                candidates.push({
+                  selection,
+                  score: scored.score,
+                  wk: scored.wk,
+                  mainKey: mainChoice.key,
+                  mainLabel: mainChoice.label,
+                  mainType: mainChoice.type,
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+
+  return candidates.sort((a, b) => a.score - b.score);
+}
+
+function buildMainAlternatives(dayIdx) {
+  return getMainChoices(allDays[dayIdx])
+    .map(choice => buildRecommendationCandidates(dayIdx, {
+      preferredMainKey: choice.key,
+      comboOffset: 0,
+    })[0])
+    .filter(Boolean)
+    .sort((a, b) => a.score - b.score);
+}
+
+function buildRecommendation(dayIdx = cart.dayIdx, state = getRecommendationState(dayIdx, 'daily')) {
+  const day = allDays[dayIdx];
+  const candidates = buildRecommendationCandidates(dayIdx, state);
+  if (!day || !candidates.length) return null;
+
+  const offset = state?.comboOffset || 0;
+  const best = candidates[offset % candidates.length];
+
+  const items = [];
+  const mainIdx = best.selection.mains.findIndex(Boolean);
+  const dessertIdx = best.selection.desserts.findIndex(Boolean);
+
+  if (mainIdx >= 0) items.push(day.mains[mainIdx].name);
+  if (best.selection.salatGross > 0) items.push('Großer Salat');
+  if (best.selection.soup > 0) items.push(day.soup.name);
+  if (best.selection.salatKlein > 0) items.push('Kleiner Salat');
+  if (dessertIdx >= 0) items.push(day.desserts[dessertIdx].name);
+  if (best.selection.obst > 0) items.push(`${best.selection.obst}x Obst`);
+  if (best.selection.gebaeck > 0) items.push(`${best.selection.gebaeck}x Gebäck`);
+  if (best.selection.oj > 0) items.push('Orangensaft');
+
+  const notes = [];
+  if (profile.diet === 'vegetarian') notes.push('vegetarisch gefiltert');
+  if (profile.extras.smallSalad && best.selection.salatKlein > 0) notes.push('kleiner Salat als Zusatz');
+  if (best.selection.salatGross > 0) notes.push('großer Salat zählt als Hauptspeise');
+  if (!getMainChoices(day).length && day.mains.length) notes.push('keine passende Hauptspeise erkannt');
+
+  return {
+    ...best,
+    items,
+    notes,
+    zahlbetrag: zahlbetrag(best.wk),
+  };
+}
+
+function refreshRecommendation(dayIdx, scope, mode) {
+  const state = getRecommendationState(dayIdx, scope);
+
+  if (mode === 'combo') {
+    state.comboOffset = (state.comboOffset || 0) + 1;
+    return;
+  }
+
+  const alternatives = buildMainAlternatives(dayIdx);
+  const current = buildRecommendation(dayIdx, state);
+  if (!current?.mainKey || current.mainKey === 'main:none' || alternatives.length < 2) {
+    state.comboOffset = (state.comboOffset || 0) + 1;
+    return;
+  }
+
+  const currentIdx = alternatives.findIndex(item => item.mainKey === current.mainKey);
+  const nextIdx = currentIdx >= 0 ? (currentIdx + 1) % alternatives.length : 0;
+  state.preferredMainKey = alternatives[nextIdx].mainKey;
+  state.comboOffset = 0;
+}
+
+function renderProfilePanel() {
+  const panel = document.getElementById('profile-panel');
+  if (!panel) return;
+  panel.innerHTML = `
+    <details class="profile-accordion"${settingsOpen ? ' open' : ''}>
+      <summary class="profile-summary">
+        <span>
+          <span class="section-title">Empfehlungsprofil</span>
+          <span class="profile-current">${profileSummary()}</span>
+        </span>
+        <span class="profile-summary-action">Einstellungen</span>
+      </summary>
+      <div class="profile-content">
+        <div class="profile-actions">
+          <span class="info-tip info-tip-wide" tabindex="0" role="img" aria-label="Deine Einstellungen werden automatisch in diesem Browser gespeichert. Der Profil-Link schreibt sie zusätzlich in die URL. Wenn du diesen Link als Bookmark speicherst oder teilst, lädt die App beim Öffnen genau diese Einstellungen und speichert sie wieder lokal." data-tip="Deine Einstellungen werden automatisch in diesem Browser gespeichert. Der Profil-Link schreibt sie zusätzlich in die URL. Wenn du diesen Link als Bookmark speicherst oder teilst, lädt die App beim Öffnen genau diese Einstellungen und speichert sie wieder lokal.">i</span>
+          <button class="link-btn" data-action="copy-profile-link" type="button">Profil-Link</button>
+        </div>
+        <div class="settings-group">
+          <h3 class="settings-title">Allgemein</h3>
+          <div class="profile-grid">
+            <label class="field">
+              ${settingLabel('Sweet Spot', 'Steuert, ob Empfehlungen möglichst nah am Förderlimit landen, lieber knapp darunter bleiben oder leicht darüber gehen dürfen.')}
+              <select data-profile="budgetMode">
+                <option value="balanced"${profile.budgetMode === 'balanced' ? ' selected' : ''}>Möglichst nah</option>
+                <option value="under"${profile.budgetMode === 'under' ? ' selected' : ''}>Knapp drunter</option>
+                <option value="over"${profile.budgetMode === 'over' ? ' selected' : ''}>Leicht drüber</option>
+              </select>
+            </label>
+            <label class="field">
+              ${settingLabel('Ernährung', 'Vegetarisch filtert Hauptspeisen anhand des vegetarisch/vegan Slots und einfacher Texterkennung. Vegan wird bewusst nicht angeboten, weil die Daten dafür nicht zuverlässig genug sind.')}
+              <select data-profile="diet">
+                <option value="none"${profile.diet === 'none' ? ' selected' : ''}>Alles</option>
+                <option value="vegetarian"${profile.diet === 'vegetarian' ? ' selected' : ''}>Vegetarisch</option>
+              </select>
+            </label>
+            ${profileCheckbox('allowLargeSaladMain', 'Großer Salat statt Hauptspeise erlauben', 'Wenn aktiv, darf ein großer Salat als Hauptspeise-Ersatz empfohlen werden. In so einer Kombination wird kein kleiner Salat zusätzlich gewählt.')}
+            ${profileCheckbox('addPastryToLargeSalad', 'Immer 1 Gebäck zu großem Salat', 'Wenn ein großer Salat als Hauptspeise empfohlen wird, kommt automatisch mindestens ein Gebäck dazu.')}
+            ${profileCheckbox('allowDessert', 'Nachspeise erlauben', 'Wenn aktiv, darf die Empfehlung Desserts verwenden. Wenn aus, bleiben Nachspeisen in Empfehlungen immer weg.')}
+          </div>
+        </div>
+        <div class="settings-group">
+          <h3 class="settings-title">Zusätze</h3>
+          <div class="extras-grid">
+            ${profileExtraCheckbox('fruit', 'Obst', 'Darf Obst verwenden, um den Sweet Spot sinnvoll aufzufüllen.')}
+            ${profileExtraCheckbox('soup', 'Suppe', 'Nimmt Suppe als Zusatz dazu, sofern sie zur gewählten Ernährung passt.')}
+            ${profileExtraCheckbox('pastry', 'Gebäck', 'Darf Gebäck als günstigen Zusatz in die Kombination aufnehmen.')}
+            ${profileExtraCheckbox('oj', 'Orangensaft', 'Darf Orangensaft ergänzen. Wird wegen des höheren Preises eher zurückhaltend gewählt.')}
+            ${profileExtraCheckbox('smallSalad', 'Kleiner Salat', 'Fügt zu Hauptspeisen einen kleinen Salat als Zusatz hinzu. Nicht bei großem Salat als Hauptspeise.')}
+          </div>
+        </div>
+        <p id="profile-link-status" class="profile-status" aria-live="polite"></p>
+      </div>
+    </details>`;
+}
+
+function renderRecommendation() {
+  const el = document.getElementById('recommendation');
+  if (!el) return;
+  currentRecommendation = buildRecommendation(cart.dayIdx, getRecommendationState(cart.dayIdx, 'daily'));
+
+  if (!currentRecommendation) {
+    el.innerHTML = `
+      <h2 class="section-title">Empfehlung</h2>
+      <p class="recommendation-empty">Keine Empfehlung für diesen Tag.</p>`;
+    return;
+  }
+
+  const itemList = currentRecommendation.items.length
+    ? currentRecommendation.items.map(item => `<li>${esc(item)}</li>`).join('')
+    : '<li>Nur Extras</li>';
+  const notes = currentRecommendation.notes.length
+    ? `<div class="recommendation-notes">${currentRecommendation.notes.map(esc).join(' · ')}</div>`
+    : '';
+
+  el.innerHTML = `
+    <div class="recommendation-head">
+      <div>
+        <h2 class="section-title">Empfehlung</h2>
+        <div class="recommendation-price">${fmt(currentRecommendation.zahlbetrag)}</div>
+      </div>
+      <div class="recommendation-actions">
+        <button class="link-btn" data-action="refresh-recommendation" data-scope="daily" data-mode="main" type="button">Andere Hauptspeise</button>
+        <button class="primary-btn" data-action="apply-recommendation" type="button">Übernehmen</button>
+      </div>
+    </div>
+    <ul class="recommendation-items">${itemList}</ul>
+    <div class="recommendation-meta">
+      <span>Warenkorb ${fmt(currentRecommendation.wk)}</span>
+      <span>Sweet Spot ${fmt(sweetSpot())}</span>
+    </div>
+    ${notes}`;
+}
+
+function settingLabel(label, tip) {
+  return `
+    <span class="setting-label">
+      <span>${label}</span>
+      <span class="info-tip" tabindex="0" role="img" aria-label="${esc(tip)}" data-tip="${esc(tip)}">i</span>
+    </span>`;
+}
+
+function profileCheckbox(key, label, tip) {
+  return `
+    <label class="check-field check-field-wide">
+      <input type="checkbox" data-profile="${key}"${profile[key] ? ' checked' : ''}>
+      ${settingLabel(label, tip)}
+    </label>`;
+}
+
+function profileExtraCheckbox(key, label, tip) {
+  return `
+    <label class="check-field">
+      <input type="checkbox" data-profile-extra="${key}"${profile.extras[key] ? ' checked' : ''}>
+      ${settingLabel(label, tip)}
+    </label>`;
+}
+
+function profileSummary() {
+  const diet = profile.diet === 'vegetarian' ? 'Vegetarisch' : 'Alles';
+  const budget = {
+    balanced: 'nah am Sweet Spot',
+    under: 'knapp drunter',
+    over: 'leicht drüber',
+  }[profile.budgetMode] || 'nah am Sweet Spot';
+  const extras = [
+    profile.extras.fruit ? 'Obst' : '',
+    profile.extras.soup ? 'Suppe' : '',
+    profile.extras.pastry ? 'Gebäck' : '',
+    profile.extras.oj ? 'OJ' : '',
+    profile.extras.smallSalad ? 'kleiner Salat' : '',
+    profile.allowLargeSaladMain ? 'großer Salat möglich' : '',
+    profile.addPastryToLargeSalad ? 'Gebäck zu großem Salat' : '',
+    profile.allowDessert ? 'Nachspeise erlaubt' : 'ohne Nachspeise',
+  ].filter(Boolean);
+  return `${diet} · ${budget}${extras.length ? ' · ' + extras.join(', ') : ''}`;
+}
+
+function renderWeeklyRecommendations() {
+  const el = document.getElementById('weekly-recommendations');
+  if (!el) return;
+  const todayISO = new Date().toISOString().slice(0, 10);
+
+  const days = allDays.map((day, dayIdx) => {
+    const recommendation = buildRecommendation(dayIdx, getRecommendationState(dayIdx, 'weekly'));
+    const isPast = day.date < todayISO;
+    const itemList = recommendation?.items.length
+      ? recommendation.items.map(item => `<li>${esc(item)}</li>`).join('')
+      : '<li>Keine Empfehlung</li>';
+
+    return `
+      <article class="week-rec-card${isPast ? ' past' : ''}">
+        <div class="week-rec-date">
+          <span>${esc(day.weekday.slice(0, 2))}</span>
+          <strong>${fmtDt(day.date)}</strong>
+        </div>
+        <div class="week-rec-body">
+          <div class="week-rec-price">${recommendation ? fmt(recommendation.zahlbetrag) : '—'}</div>
+          <ul>${itemList}</ul>
+          ${recommendation ? `<div class="recommendation-meta"><span>${fmt(recommendation.wk)}</span><span>${fmt(sweetSpot())}</span></div>` : ''}
+        </div>
+        <div class="week-rec-actions">
+          <button class="link-btn" data-action="refresh-recommendation" data-scope="weekly" data-mode="main" data-day-idx="${dayIdx}" type="button">Hauptspeise</button>
+          <button class="link-btn" data-action="refresh-recommendation" data-scope="weekly" data-mode="combo" data-day-idx="${dayIdx}" type="button">Kombi</button>
+        </div>
+      </article>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="weekly-head">
+      <h2 class="section-title">Wochenübersicht</h2>
+    </div>
+    <div class="weekly-grid">${days}</div>`;
+}
+
 // ── Rendering — day nav ───────────────────────────────────────────────────────
 function renderDayNav() {
   const nav      = document.getElementById('day-nav');
+  if (!nav) return;
   const todayISO = new Date().toISOString().slice(0, 10);
 
   nav.innerHTML = menuData.weeks.map(w => {
@@ -137,6 +709,7 @@ function dishCard({ id, active, slotLabel, name, desc, unitPrice, field, idx }) 
 // ── Rendering — menu panel ────────────────────────────────────────────────────
 function renderDayPanel() {
   const panel = document.getElementById('day-panel');
+  if (!panel) return;
   const day   = allDays[cart.dayIdx];
   const p     = cfg.preise_fix;
   const sections = [];
@@ -272,6 +845,7 @@ function renderDayPanel() {
 
 // ── Rendering — summary ───────────────────────────────────────────────────────
 function renderSummary() {
+  if (!document.getElementById('summary')) return;
   const wk = calcWarenkorb();
   const zb = zahlbetrag(wk);
   const ss = sweetSpot();
@@ -307,13 +881,26 @@ function renderSummary() {
 }
 
 function render() {
+  renderProfilePanel();
+  if (pageMode === 'weekly') {
+    renderWeeklyRecommendations();
+    return;
+  }
+
   renderDayNav();
+  renderRecommendation();
   renderDayPanel();
   renderSummary();
 }
 
 // ── Event handling ────────────────────────────────────────────────────────────
 document.addEventListener('click', e => {
+  if (e.target.closest('.info-tip')) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+
   const el = e.target.closest('[data-action]');
   if (!el) return;
 
@@ -326,6 +913,40 @@ document.addEventListener('click', e => {
     resetCart();
     render();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  if (action === 'apply-recommendation') {
+    if (!currentRecommendation) return;
+    setCartFromSelection(currentRecommendation.selection);
+    render();
+    document.getElementById('summary')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+
+  if (action === 'refresh-recommendation') {
+    const scope = el.dataset.scope || 'daily';
+    const mode = el.dataset.mode || 'main';
+    const dayIdx = scope === 'weekly' ? parseInt(el.dataset.dayIdx, 10) : cart.dayIdx;
+    refreshRecommendation(dayIdx, scope, mode);
+    if (scope === 'weekly') renderWeeklyRecommendations();
+    else renderRecommendation();
+    return;
+  }
+
+  if (action === 'copy-profile-link') {
+    const link = profileUrl();
+    window.location.hash = 'p=' + encodeProfile(profile);
+    const status = document.getElementById('profile-link-status');
+    const done = () => {
+      if (status) status.textContent = 'Profil-Link bereit.';
+    };
+
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(link).then(done).catch(done);
+    } else {
+      done();
+    }
     return;
   }
 
@@ -371,6 +992,30 @@ document.addEventListener('click', e => {
   }
 });
 
+document.addEventListener('change', e => {
+  const extraEl = e.target.closest('[data-profile-extra]');
+  if (extraEl) {
+    profile.extras[extraEl.dataset.profileExtra] = extraEl.checked;
+    resetRecommendationState();
+    saveProfile();
+    render();
+    return;
+  }
+
+  const el = e.target.closest('[data-profile]');
+  if (!el) return;
+
+  const key = el.dataset.profile;
+  profile[key] = el.type === 'checkbox' ? el.checked : el.value;
+  resetRecommendationState();
+  saveProfile();
+  render();
+});
+
+document.addEventListener('toggle', e => {
+  if (!e.target.matches('.profile-accordion')) return;
+  settingsOpen = e.target.open;
+}, true);
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
@@ -378,6 +1023,8 @@ async function init() {
   const errorEl   = document.getElementById('error-msg');
 
   try {
+    loadProfile();
+
     [cfg, menuData] = await Promise.all([
       fetch('config.json').then(r => { if (!r.ok) throw new Error('config.json: ' + r.status); return r.json(); }),
       fetch('menu.json?v=' + Date.now()).then(r  => { if (!r.ok) throw new Error('menu.json: '   + r.status); return r.json(); }),
@@ -410,9 +1057,16 @@ async function init() {
   }
 
   loadingEl.hidden = true;
-  document.getElementById('day-nav').hidden     = false;
-  document.getElementById('day-panel').hidden   = false;
-  document.getElementById('summary').hidden     = false;
+  document.getElementById('profile-panel')?.removeAttribute('hidden');
+
+  if (pageMode === 'weekly') {
+    document.getElementById('weekly-recommendations')?.removeAttribute('hidden');
+  } else {
+    document.getElementById('day-nav')?.removeAttribute('hidden');
+    document.getElementById('recommendation')?.removeAttribute('hidden');
+    document.getElementById('day-panel')?.removeAttribute('hidden');
+    document.getElementById('summary')?.removeAttribute('hidden');
+  }
 
   render();
 }

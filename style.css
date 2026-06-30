@@ -40,15 +40,20 @@ body {
   font-size: 1rem;
   line-height: 1.5;
   min-height: 100dvh;
+  overflow-x: hidden;
   padding: var(--gap);
 }
 
 #app {
-  max-width: 640px;
+  width: min(100%, 640px);
+  max-width: calc(100vw - (2 * var(--gap)));
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--gap);
+}
+body[data-page="weekly"] #app {
+  width: min(100%, 1120px);
 }
 
 /* ── Glass mixin ────────────────────────────────────────────────────── */
@@ -72,6 +77,7 @@ header { }
   padding: .9rem 1.1rem;
 }
 .header-title {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: .6rem;
@@ -80,13 +86,38 @@ header { }
 h1 {
   font-size: 1.25rem;
   font-weight: 700;
-  letter-spacing: -.01em;
+  letter-spacing: 0;
   color: var(--teal);
 }
 .scraped-at {
   font-size: .72rem;
   color: var(--text-muted);
-  white-space: nowrap;
+  text-align: right;
+}
+
+/* ── Page nav ───────────────────────────────────────────────────────── */
+.site-nav {
+  display: flex;
+  gap: .35rem;
+  padding: .35rem;
+}
+.site-nav a {
+  flex: 1;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: .86rem;
+  font-weight: 700;
+  padding: .45rem .7rem;
+  text-align: center;
+  text-decoration: none;
+}
+.site-nav a:hover {
+  background: var(--glass-bg-hover);
+  color: var(--text);
+}
+.site-nav a.active {
+  background: var(--glass-bg-active);
+  color: var(--teal);
 }
 
 /* ── Day nav ─────────────────────────────────────────────────────────── */
@@ -129,6 +160,342 @@ h1 {
 }
 .day-tab.past { opacity: .45; }
 
+/* ── Profile ────────────────────────────────────────────────────────── */
+#profile-panel {
+  padding: 0;
+  overflow: visible;
+}
+.profile-accordion {
+  display: flex;
+  flex-direction: column;
+}
+.profile-summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  list-style: none;
+  padding: 1rem 1.1rem;
+}
+.profile-summary::-webkit-details-marker { display: none; }
+.profile-summary > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: .18rem;
+  min-width: 0;
+}
+.profile-current {
+  color: var(--text-dim);
+  font-size: .82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-summary-action {
+  flex: 0 0 auto;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--teal);
+  font-size: .82rem;
+  font-weight: 700;
+  padding: .35rem .6rem;
+}
+.profile-content {
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+  padding: 1rem 1.1rem;
+}
+.recommendation-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+.profile-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .55rem;
+  justify-content: flex-end;
+}
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+.settings-title {
+  color: var(--text-muted);
+  font-size: .74rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+}
+.extras-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .55rem;
+}
+.field,
+.check-field {
+  min-width: 0;
+  display: flex;
+  gap: .35rem;
+  color: var(--text);
+  font-size: .82rem;
+}
+.field {
+  flex-direction: column;
+}
+.field span,
+.check-field span {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.setting-label {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+.setting-label > span:first-child {
+  min-width: 0;
+}
+.info-tip {
+  flex: 0 0 auto;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--glass-border-active);
+  border-radius: 50%;
+  color: var(--teal) !important;
+  cursor: help;
+  font-size: .68rem;
+  font-weight: 800 !important;
+  line-height: 1;
+}
+.info-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  top: calc(100% + .45rem);
+  z-index: 5;
+  width: min(17rem, calc(100vw - 4rem));
+  padding: .55rem .65rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: #111827;
+  box-shadow: var(--glass-shadow);
+  color: var(--text);
+  font-size: .75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  transform: translate(-50%, -.2rem);
+  transition: opacity .12s, transform .12s;
+}
+.info-tip-wide::after {
+  width: min(22rem, calc(100vw - 4rem));
+}
+.info-tip:hover::after,
+.info-tip:focus::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.field select {
+  width: 100%;
+  min-height: 2.2rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: rgba(11, 15, 26, .72);
+  color: var(--text);
+  font: inherit;
+  padding: .35rem .55rem;
+}
+.check-field {
+  position: relative;
+  align-items: center;
+  min-height: 2.2rem;
+  padding: .35rem .55rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg);
+}
+.check-field input {
+  accent-color: var(--teal);
+}
+.check-field-wide {
+  grid-column: 1 / -1;
+}
+.link-btn,
+.primary-btn {
+  border: 1px solid var(--glass-border-active);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  min-height: 2.1rem;
+  max-width: 100%;
+  padding: .35rem .7rem;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.link-btn {
+  background: transparent;
+  color: var(--teal);
+}
+.link-btn:hover,
+.primary-btn:hover {
+  background: var(--glass-bg-active);
+}
+.primary-btn {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #071018;
+}
+.profile-status {
+  min-height: 1rem;
+  color: var(--text-muted);
+  font-size: .74rem;
+}
+
+/* ── Recommendation ─────────────────────────────────────────────────── */
+#recommendation {
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.recommendation-price {
+  color: var(--teal);
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.recommendation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  justify-content: flex-end;
+}
+.recommendation-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .4rem .85rem;
+  list-style: none;
+}
+.recommendation-items li {
+  min-width: 0;
+  color: var(--text);
+  font-size: .9rem;
+}
+.recommendation-items li::before {
+  content: "";
+  display: inline-block;
+  width: .42rem;
+  height: .42rem;
+  margin-right: .45rem;
+  border-radius: 50%;
+  background: var(--teal);
+  vertical-align: .1rem;
+}
+.recommendation-meta,
+.recommendation-notes,
+.recommendation-empty {
+  color: var(--text-dim);
+  font-size: .78rem;
+}
+.recommendation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem .8rem;
+}
+
+/* ── Weekly recommendations ─────────────────────────────────────────── */
+#weekly-recommendations {
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.weekly-grid {
+  display: flex;
+  gap: .65rem;
+  overflow-x: auto;
+  padding: .05rem .05rem .35rem;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+.week-rec-card {
+  flex: 0 0 12rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg);
+  padding: .75rem;
+  scroll-snap-align: start;
+}
+.week-rec-card.past {
+  opacity: .42;
+}
+.week-rec-date {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .5rem;
+  color: var(--text-dim);
+  font-size: .78rem;
+}
+.week-rec-date strong {
+  color: var(--text);
+  font-size: .9rem;
+}
+.week-rec-body {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.week-rec-price {
+  color: var(--teal);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.week-rec-body ul {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  list-style: none;
+}
+.week-rec-body li {
+  color: var(--text);
+  font-size: .82rem;
+}
+.week-rec-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .4rem;
+}
+.week-rec-actions .link-btn {
+  min-height: 1.9rem;
+  padding: .25rem .45rem;
+  width: 100%;
+  white-space: normal;
+}
+
 /* ── Menu panel ──────────────────────────────────────────────────────── */
 #day-panel {
   display: flex;
@@ -145,7 +512,7 @@ h1 {
 .section-title {
   font-size: .7rem;
   font-weight: 700;
-  letter-spacing: .08em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -209,7 +576,7 @@ h1 {
 .main-slot {
   font-size: .68rem;
   font-weight: 700;
-  letter-spacing: .05em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -363,12 +730,43 @@ h1 {
 /* ── Accessibility: reduced motion ─────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .progress-fill { transition: none; }
-  .day-tab, .dish-toggle, .stepper-btn, .radio-pill span, .main-card { transition: none; }
+  .day-tab, .stepper-btn, .link-btn, .primary-btn { transition: none; }
 }
 
 /* ── Mobile tweaks ──────────────────────────────────────────────────── */
-@media (max-width: 420px) {
+@media (max-width: 560px) {
   body { padding: .65rem; }
+  #app {
+    width: calc(100vw - 2rem);
+    max-width: calc(100vw - 2rem);
+  }
   h1 { font-size: 1.1rem; }
   .sum-highlight { font-size: 1.3rem !important; }
+  .profile-grid,
+  .extras-grid,
+  .recommendation-items {
+    grid-template-columns: 1fr;
+  }
+  .recommendation-head {
+    align-items: flex-start;
+  }
+  .profile-actions,
+  .recommendation-actions {
+    width: 100%;
+  }
+  .profile-actions .link-btn,
+  .recommendation-actions .link-btn,
+  .recommendation-actions .primary-btn {
+    width: 100%;
+  }
+  .profile-summary {
+    align-items: flex-start;
+  }
+  .profile-summary-action {
+    margin-top: .1rem;
+  }
+  .scraped-at {
+    width: 100%;
+    text-align: left;
+  }
 }
