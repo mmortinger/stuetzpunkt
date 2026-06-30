@@ -14,9 +14,8 @@ pip install -r requirements.txt
 python3 scraper.py
 
 # Lokaler Dev-Server (same-origin für die JSON-Fetches)
-npm run dev
-# → Home: http://127.0.0.1:4173/
-# → Wochenübersicht: http://127.0.0.1:4173/weekly.html
+python3 -m http.server 8000
+# → http://localhost:8000
 ```
 
 ## Deployment via GitHub Pages
