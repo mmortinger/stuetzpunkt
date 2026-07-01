@@ -239,9 +239,15 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .65rem;
 }
+.salad-options-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+}
 .extras-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .55rem;
 }
 .field,
@@ -339,6 +345,69 @@ h1 {
 .check-field-wide {
   grid-column: 1 / -1;
 }
+.extra-mode-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  padding: .55rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg);
+}
+.extra-mode-field legend {
+  width: 100%;
+  float: left;
+  margin-bottom: .45rem;
+  color: var(--text-dim);
+  font-size: .82rem;
+  font-weight: 600;
+}
+.extra-mode-field legend + * {
+  clear: both;
+}
+.mode-segment {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .15rem;
+  padding: .15rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: rgba(11, 15, 26, .36);
+}
+.mode-segment label {
+  position: relative;
+  min-width: 0;
+}
+.mode-segment input {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+.mode-segment span {
+  display: grid;
+  place-items: center;
+  min-height: 1.85rem;
+  padding: .2rem .35rem;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-sm) - 2px);
+  color: var(--text-dim);
+  font-size: .76rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.mode-segment input:checked + span {
+  border-color: var(--glass-border-active);
+  background: var(--glass-bg-active);
+  color: var(--teal);
+}
+.mode-segment input:focus-visible + span {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
 .link-btn,
 .primary-btn {
   border: 1px solid var(--glass-border-active);
@@ -430,15 +499,12 @@ h1 {
   gap: .75rem;
 }
 .weekly-grid {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: .65rem;
-  overflow-x: auto;
   padding: .05rem .05rem .35rem;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
 }
 .week-rec-card {
-  flex: 0 0 12rem;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -447,7 +513,6 @@ h1 {
   border-radius: var(--radius-sm);
   background: var(--glass-bg);
   padding: .75rem;
-  scroll-snap-align: start;
 }
 .week-rec-card.past {
   opacity: .42;
@@ -750,6 +815,12 @@ h1 {
   .recommendation-head {
     align-items: flex-start;
   }
+  .salad-options-row {
+    grid-template-columns: 1fr;
+  }
+  .weekly-grid {
+    grid-template-columns: 1fr;
+  }
   .profile-actions,
   .recommendation-actions {
     width: 100%;
@@ -768,5 +839,11 @@ h1 {
   .scraped-at {
     width: 100%;
     text-align: left;
+  }
+}
+
+@media (min-width: 561px) and (max-width: 900px) {
+  .weekly-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

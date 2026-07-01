@@ -45,22 +45,27 @@ Die Einstellungen sind in einem Akkordeon untergebracht und standardmäßig eing
   - Wenn ein großer Salat als Hauptspeise verwendet wird, wird kein kleiner Salat zusätzlich gewählt.
 - **Immer 1 Gebäck zu großem Salat**
   - Wenn aktiv, wird bei großem Salat als Hauptspeise mindestens ein Gebäck ergänzt.
-  - Diese Option greift auch dann, wenn die allgemeine Gebäck-Zusatzoption deaktiviert ist.
-- **Nachspeise erlauben**
-  - Wenn deaktiviert, enthalten Empfehlungen keine Desserts.
-  - Das manuelle Auswählen von Desserts im normalen Tagesplan bleibt unverändert.
+  - Diese Option greift nur, wenn der Zusatz `Gebäck` nicht auf `Nie` steht.
 
 ### Zusätze
 
-Diese Optionen erlauben der Recommendation-Logik, passende Extras zu verwenden:
+Jeder Zusatz hat drei Modi:
+
+- `Bei Bedarf`
+  - der Optimierer darf den Zusatz verwenden, wenn er damit besser am Sweet Spot landet
+- `Immer`
+  - der Zusatz ist in Empfehlungskandidaten immer enthalten, sofern er verfügbar und zur Ernährung passend ist
+- `Nie`
+  - der Zusatz wird in Empfehlungen nicht verwendet
 
 - Obst
 - Suppe
 - Gebäck
 - Orangensaft
 - Kleiner Salat
+- Nachspeise
 
-Obst ist für neue User standardmäßig aktiviert.
+Obst und Nachspeise stehen für neue User standardmäßig auf `Bei Bedarf`. Die übrigen Zusätze stehen standardmäßig auf `Nie`.
 
 ## Info-Hover
 
@@ -99,10 +104,7 @@ Beim Laden gilt:
 Die App baut Kandidaten aus:
 
 - einer Hauptspeise oder optional großem Salat
-- optionaler Suppe
-- optionalem kleinen Salat
-- optionaler Nachspeise
-- erlaubten Extras
+- Zusätzen je nach Modus `Bei Bedarf`, `Immer` oder `Nie`
 
 Danach wird jeder Kandidat gegen die aktuelle Sweet-Spot-Strategie bewertet.
 

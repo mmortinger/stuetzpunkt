@@ -14,6 +14,30 @@ const recommendationState = {
 };
 
 const PROFILE_STORAGE_KEY = 'stuetzpunkt-profile-v1';
+const EXTRA_MODE_OPTIONAL = 'optional';
+const EXTRA_MODE_ALWAYS = 'always';
+const EXTRA_MODE_NEVER = 'never';
+const EXTRA_MODE_OPTIONS = [
+  { value: EXTRA_MODE_OPTIONAL, label: 'Bei Bedarf' },
+  { value: EXTRA_MODE_ALWAYS, label: 'Immer' },
+  { value: EXTRA_MODE_NEVER, label: 'Nie' },
+];
+const EXTRA_LABELS = {
+  fruit: 'Obst',
+  soup: 'Suppe',
+  pastry: 'Gebäck',
+  oj: 'OJ',
+  smallSalad: 'kleiner Salat',
+  dessert: 'Nachspeise',
+};
+const LEGACY_TRUE_EXTRA_MODE = {
+  fruit: EXTRA_MODE_OPTIONAL,
+  soup: EXTRA_MODE_ALWAYS,
+  pastry: EXTRA_MODE_OPTIONAL,
+  oj: EXTRA_MODE_OPTIONAL,
+  smallSalad: EXTRA_MODE_ALWAYS,
+  dessert: EXTRA_MODE_OPTIONAL,
+};
 const defaultProfile = {
   diet: 'none',
   budgetMode: 'balanced',
@@ -21,11 +45,12 @@ const defaultProfile = {
   addPastryToLargeSalad: false,
   allowDessert: true,
   extras: {
-    fruit: true,
-    soup: false,
-    pastry: false,
-    oj: false,
-    smallSalad: false,
+    fruit: EXTRA_MODE_OPTIONAL,
+    soup: EXTRA_MODE_NEVER,
+    pastry: EXTRA_MODE_NEVER,
+    oj: EXTRA_MODE_NEVER,
+    smallSalad: EXTRA_MODE_NEVER,
+    dessert: EXTRA_MODE_OPTIONAL,
   },
 };
 
@@ -82,21 +107,39 @@ function sweetSpot() {
 }
 
 // ── Profile persistence ──────────────────────────────────────────────────────
+function normalizeExtraMode(key, value, fallback = EXTRA_MODE_NEVER) {
+  if ([EXTRA_MODE_OPTIONAL, EXTRA_MODE_ALWAYS, EXTRA_MODE_NEVER].includes(value)) return value;
+  if (value === true) return LEGACY_TRUE_EXTRA_MODE[key] || EXTRA_MODE_OPTIONAL;
+  if (value === false) return EXTRA_MODE_NEVER;
+  return fallback;
+}
+
+function extraMode(key) {
+  return normalizeExtraMode(key, profile.extras?.[key], defaultProfile.extras[key]);
+}
+
 function normalizeProfile(data = {}) {
+  const sourceExtras = data.extras || {};
   const normalized = {
     ...defaultProfile,
     ...data,
-    extras: {
-      ...defaultProfile.extras,
-      ...(data.extras || {}),
-    },
+    extras: Object.fromEntries(
+      Object.entries(defaultProfile.extras).map(([key, fallback]) => [
+        key,
+        normalizeExtraMode(key, sourceExtras[key], fallback),
+      ])
+    ),
   };
 
-  if (data.filler && defaultProfile.extras[data.filler] !== undefined) {
-    normalized.extras[data.filler] = true;
+  if (sourceExtras.dessert === undefined && typeof data.allowDessert === 'boolean') {
+    normalized.extras.dessert = data.allowDessert ? EXTRA_MODE_OPTIONAL : EXTRA_MODE_NEVER;
   }
-  if (data.alwaysSmallSalad === true) normalized.extras.smallSalad = true;
+  if (data.filler && defaultProfile.extras[data.filler] !== undefined) {
+    normalized.extras[data.filler] = EXTRA_MODE_OPTIONAL;
+  }
+  if (data.alwaysSmallSalad === true) normalized.extras.smallSalad = EXTRA_MODE_ALWAYS;
   if (normalized.diet === 'vegan') normalized.diet = 'vegetarian';
+  normalized.allowDessert = normalized.extras.dessert !== EXTRA_MODE_NEVER;
 
   return normalized;
 }
@@ -320,6 +363,31 @@ function calcSelection(selection, day) {
   return Math.round(wk * 100) / 100;
 }
 
+function extraCounts(key, counts) {
+  const mode = extraMode(key);
+  if (mode === EXTRA_MODE_NEVER) return [0];
+
+  const positiveCounts = counts.filter(count => count > 0);
+  if (!positiveCounts.length) return [0];
+  return mode === EXTRA_MODE_ALWAYS ? positiveCounts : [0, ...positiveCounts];
+}
+
+function dessertChoicesFor(eligibleDesserts) {
+  const dessertChoices = eligibleDesserts.map(({ dish, idx }) => ({ dish, idx }));
+  const emptyChoice = { dish: null, idx: -1 };
+
+  if (extraMode('dessert') === EXTRA_MODE_NEVER || !dessertChoices.length) return [emptyChoice];
+  if (extraMode('dessert') === EXTRA_MODE_ALWAYS) return dessertChoices;
+  return [emptyChoice, ...dessertChoices];
+}
+
+function scoreExtraPreference(key, amount, presentBonus, missingPenalty) {
+  const mode = extraMode(key);
+  if (mode === EXTRA_MODE_NEVER) return 0;
+  if (amount > 0) return -presentBonus;
+  return missingPenalty;
+}
+
 function scoreSelection(selection, day) {
   const wk = calcSelection(selection, day);
   const ss = sweetSpot();
@@ -339,13 +407,13 @@ function scoreSelection(selection, day) {
   if (profile.budgetMode === 'over' && wk < ss) score += Math.max(0, ss - wk - 0.75) * 0.4;
 
   if (selection.salatGross > 0) score += 0.45;
-  if (profile.extras.soup) score += hasSoup ? -0.35 : 0.3;
-  if (profile.extras.fruit) score += selection.obst > 0 ? -Math.min(0.5, selection.obst * 0.16) : 0.25;
-  if (profile.extras.pastry) score += selection.gebaeck > 0 ? -0.22 : 0.16;
-  if (profile.extras.oj) score += selection.oj > 0 ? -0.12 : 0.12;
-  if (profile.extras.smallSalad) score += selection.salatKlein > 0 ? -0.25 : 0.35;
+  score += scoreExtraPreference('soup', hasSoup ? 1 : 0, 0.35, 0.3);
+  score += scoreExtraPreference('fruit', selection.obst, Math.min(0.5, selection.obst * 0.16), 0.25);
+  score += scoreExtraPreference('pastry', selection.gebaeck, 0.22, 0.16);
+  score += scoreExtraPreference('oj', selection.oj, 0.12, 0.12);
+  score += scoreExtraPreference('smallSalad', selection.salatKlein, 0.25, 0.35);
 
-  if (hasDessert) score += 0.25;
+  if (hasDessert && extraMode('dessert') === EXTRA_MODE_OPTIONAL) score += 0.25;
   if (selection.oj > 0) score += 0.35;
 
   return { score, wk };
@@ -369,18 +437,18 @@ function buildRecommendationCandidates(dayIdx, state) {
     .map((dish, idx) => ({ dish, idx }))
     .filter(item => item.dish.int != null && isEligibleDish(item.dish));
   const soupAllowed = day.soup?.int != null && isEligibleDish(day.soup);
-  const soupCounts = soupAllowed && profile.extras.soup ? [1] : [0];
-  const dessertChoices = profile.allowDessert
-    ? [{ dish: null, idx: -1 }, ...eligibleDesserts]
-    : [{ dish: null, idx: -1 }];
-  const obstCounts = profile.extras.fruit ? [0, 1, 2, 3, 4] : [0];
-  const gebaeckCounts = profile.extras.pastry ? [0, 1, 2] : [0];
-  const ojCounts = profile.extras.oj ? [0, 1] : [0];
+  const soupCounts = soupAllowed ? extraCounts('soup', [1]) : [0];
+  const dessertChoices = dessertChoicesFor(eligibleDesserts);
+  const obstCounts = extraCounts('fruit', [1, 2, 3, 4]);
+  const gebaeckCounts = extraCounts('pastry', [1, 2]);
+  const ojCounts = extraCounts('oj', [1]);
   const candidates = [];
 
   mainChoices.forEach(mainChoice => {
     soupCounts.forEach(soupCount => {
-      const smallSaladCounts = profile.extras.smallSalad && mainChoice.type !== 'large-salad' ? [1] : [0];
+      const smallSaladCounts = mainChoice.type !== 'large-salad'
+        ? extraCounts('smallSalad', [1])
+        : [0];
       smallSaladCounts.forEach(saladCount => {
         dessertChoices.forEach(dessertChoice => {
           obstCounts.forEach(obst => {
@@ -390,7 +458,9 @@ function buildRecommendationCandidates(dayIdx, state) {
                 selection.soup = soupCount;
                 selection.salatKlein = saladCount;
                 selection.obst = obst;
-                selection.gebaeck = mainChoice.type === 'large-salad' && profile.addPastryToLargeSalad
+                selection.gebaeck = mainChoice.type === 'large-salad'
+                  && profile.addPastryToLargeSalad
+                  && extraMode('pastry') !== EXTRA_MODE_NEVER
                   ? Math.max(1, gebaeck)
                   : gebaeck;
                 selection.oj = oj;
@@ -451,7 +521,7 @@ function buildRecommendation(dayIdx = cart.dayIdx, state = getRecommendationStat
 
   const notes = [];
   if (profile.diet === 'vegetarian') notes.push('vegetarisch gefiltert');
-  if (profile.extras.smallSalad && best.selection.salatKlein > 0) notes.push('kleiner Salat als Zusatz');
+  if (extraMode('smallSalad') !== EXTRA_MODE_NEVER && best.selection.salatKlein > 0) notes.push('kleiner Salat als Zusatz');
   if (best.selection.salatGross > 0) notes.push('großer Salat zählt als Hauptspeise');
   if (!getMainChoices(day).length && day.mains.length) notes.push('keine passende Hauptspeise erkannt');
 
@@ -519,19 +589,21 @@ function renderProfilePanel() {
                 <option value="vegetarian"${profile.diet === 'vegetarian' ? ' selected' : ''}>Vegetarisch</option>
               </select>
             </label>
-            ${profileCheckbox('allowLargeSaladMain', 'Großer Salat statt Hauptspeise erlauben', 'Wenn aktiv, darf ein großer Salat als Hauptspeise-Ersatz empfohlen werden. In so einer Kombination wird kein kleiner Salat zusätzlich gewählt.')}
-            ${profileCheckbox('addPastryToLargeSalad', 'Immer 1 Gebäck zu großem Salat', 'Wenn ein großer Salat als Hauptspeise empfohlen wird, kommt automatisch mindestens ein Gebäck dazu.')}
-            ${profileCheckbox('allowDessert', 'Nachspeise erlauben', 'Wenn aktiv, darf die Empfehlung Desserts verwenden. Wenn aus, bleiben Nachspeisen in Empfehlungen immer weg.')}
+            <div class="salad-options-row">
+              ${profileCheckbox('allowLargeSaladMain', 'Großer Salat statt Hauptspeise erlauben', 'Wenn aktiv, darf ein großer Salat als Hauptspeise-Ersatz empfohlen werden. In so einer Kombination wird kein kleiner Salat zusätzlich gewählt.', false)}
+              ${profileCheckbox('addPastryToLargeSalad', '1 Gebäck zu großem Salat', 'Wenn aktiv, bekommt ein großer Salat als Hauptspeise ein Gebäck dazu, sofern Gebäck nicht auf Nie steht.', false)}
+            </div>
           </div>
         </div>
         <div class="settings-group">
           <h3 class="settings-title">Zusätze</h3>
           <div class="extras-grid">
-            ${profileExtraCheckbox('fruit', 'Obst', 'Darf Obst verwenden, um den Sweet Spot sinnvoll aufzufüllen.')}
-            ${profileExtraCheckbox('soup', 'Suppe', 'Nimmt Suppe als Zusatz dazu, sofern sie zur gewählten Ernährung passt.')}
-            ${profileExtraCheckbox('pastry', 'Gebäck', 'Darf Gebäck als günstigen Zusatz in die Kombination aufnehmen.')}
-            ${profileExtraCheckbox('oj', 'Orangensaft', 'Darf Orangensaft ergänzen. Wird wegen des höheren Preises eher zurückhaltend gewählt.')}
-            ${profileExtraCheckbox('smallSalad', 'Kleiner Salat', 'Fügt zu Hauptspeisen einen kleinen Salat als Zusatz hinzu. Nicht bei großem Salat als Hauptspeise.')}
+            ${profileExtraModeControl('fruit', 'Obst', 'Bei Bedarf füllt Obst den Warenkorb Richtung Sweet Spot auf. Immer startet mit mindestens einem Stück. Nie lässt Obst weg.')}
+            ${profileExtraModeControl('soup', 'Suppe', 'Bei Bedarf darf Suppe zum Sweet Spot beitragen. Immer nimmt Suppe dazu, sofern sie verfügbar und passend ist.')}
+            ${profileExtraModeControl('pastry', 'Gebäck', 'Bei Bedarf darf Gebäck den Sweet Spot auffüllen. Immer nimmt mindestens ein Gebäck dazu. Nie lässt Gebäck weg.')}
+            ${profileExtraModeControl('oj', 'Orangensaft', 'Bei Bedarf darf Orangensaft ergänzen. Immer nimmt ein Glas dazu. Nie lässt Orangensaft weg.')}
+            ${profileExtraModeControl('smallSalad', 'Kleiner Salat', 'Bei Bedarf darf ein kleiner Salat ergänzt werden. Immer nimmt ihn zu Hauptspeisen dazu, aber nicht bei großem Salat als Hauptspeise.')}
+            ${profileExtraModeControl('dessert', 'Nachspeise', 'Bei Bedarf darf eine Nachspeise helfen, den Sweet Spot zu treffen. Immer wählt eine passende Nachspeise, sofern vorhanden. Nie lässt Nachspeisen weg.')}
           </div>
         </div>
         <p id="profile-link-status" class="profile-status" aria-live="polite"></p>
@@ -585,20 +657,27 @@ function settingLabel(label, tip) {
     </span>`;
 }
 
-function profileCheckbox(key, label, tip) {
+function profileCheckbox(key, label, tip, wide = true) {
   return `
-    <label class="check-field check-field-wide">
+    <label class="check-field${wide ? ' check-field-wide' : ''}">
       <input type="checkbox" data-profile="${key}"${profile[key] ? ' checked' : ''}>
       ${settingLabel(label, tip)}
     </label>`;
 }
 
-function profileExtraCheckbox(key, label, tip) {
+function profileExtraModeControl(key, label, tip) {
+  const selectedMode = extraMode(key);
+  const options = EXTRA_MODE_OPTIONS.map(option => `
+    <label>
+      <input type="radio" name="extra-${key}" data-profile-extra="${key}" value="${option.value}"${selectedMode === option.value ? ' checked' : ''}>
+      <span>${option.label}</span>
+    </label>`).join('');
+
   return `
-    <label class="check-field">
-      <input type="checkbox" data-profile-extra="${key}"${profile.extras[key] ? ' checked' : ''}>
-      ${settingLabel(label, tip)}
-    </label>`;
+    <fieldset class="extra-mode-field">
+      <legend>${settingLabel(label, tip)}</legend>
+      <div class="mode-segment" role="radiogroup" aria-label="${esc(label)}">${options}</div>
+    </fieldset>`;
 }
 
 function profileSummary() {
@@ -608,15 +687,17 @@ function profileSummary() {
     under: 'knapp drunter',
     over: 'leicht drüber',
   }[profile.budgetMode] || 'nah am Sweet Spot';
+  const optionalExtras = Object.keys(EXTRA_LABELS)
+    .filter(key => extraMode(key) === EXTRA_MODE_OPTIONAL)
+    .map(key => EXTRA_LABELS[key]);
+  const alwaysExtras = Object.keys(EXTRA_LABELS)
+    .filter(key => extraMode(key) === EXTRA_MODE_ALWAYS)
+    .map(key => EXTRA_LABELS[key]);
   const extras = [
-    profile.extras.fruit ? 'Obst' : '',
-    profile.extras.soup ? 'Suppe' : '',
-    profile.extras.pastry ? 'Gebäck' : '',
-    profile.extras.oj ? 'OJ' : '',
-    profile.extras.smallSalad ? 'kleiner Salat' : '',
     profile.allowLargeSaladMain ? 'großer Salat möglich' : '',
-    profile.addPastryToLargeSalad ? 'Gebäck zu großem Salat' : '',
-    profile.allowDessert ? 'Nachspeise erlaubt' : 'ohne Nachspeise',
+    profile.addPastryToLargeSalad && extraMode('pastry') !== EXTRA_MODE_NEVER ? 'Gebäck zu großem Salat' : '',
+    optionalExtras.length ? `bei Bedarf: ${optionalExtras.join(', ')}` : '',
+    alwaysExtras.length ? `immer: ${alwaysExtras.join(', ')}` : '',
   ].filter(Boolean);
   return `${diet} · ${budget}${extras.length ? ' · ' + extras.join(', ') : ''}`;
 }
@@ -995,7 +1076,12 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const extraEl = e.target.closest('[data-profile-extra]');
   if (extraEl) {
-    profile.extras[extraEl.dataset.profileExtra] = extraEl.checked;
+    profile.extras[extraEl.dataset.profileExtra] = normalizeExtraMode(
+      extraEl.dataset.profileExtra,
+      extraEl.value,
+      defaultProfile.extras[extraEl.dataset.profileExtra]
+    );
+    profile.allowDessert = extraMode('dessert') !== EXTRA_MODE_NEVER;
     resetRecommendationState();
     saveProfile();
     render();
