@@ -6,7 +6,7 @@
   <title>Stützpunkt</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-page="home">
   <div id="app">
 
     <header>
@@ -19,7 +19,16 @@
       </div>
     </header>
 
+    <nav class="site-nav glass" aria-label="Ansicht wechseln">
+      <a class="active" href="index.html">Home</a>
+      <a href="weekly.html">Wochenübersicht</a>
+    </nav>
+
     <nav id="day-nav" aria-label="Tag auswählen" hidden></nav>
+
+    <section id="profile-panel" class="glass" aria-label="Essensprofil" hidden></section>
+
+    <section id="recommendation" class="glass" aria-label="Empfehlung" hidden></section>
 
     <main id="day-panel" aria-live="polite" hidden></main>
 
