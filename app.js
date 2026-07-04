@@ -30,14 +30,6 @@ const EXTRA_LABELS = {
   smallSalad: 'kleiner Salat',
   dessert: 'Nachspeise',
 };
-const LEGACY_TRUE_EXTRA_MODE = {
-  fruit: EXTRA_MODE_OPTIONAL,
-  soup: EXTRA_MODE_ALWAYS,
-  pastry: EXTRA_MODE_OPTIONAL,
-  oj: EXTRA_MODE_OPTIONAL,
-  smallSalad: EXTRA_MODE_ALWAYS,
-  dessert: EXTRA_MODE_OPTIONAL,
-};
 const defaultProfile = {
   diet: 'none',
   budgetMode: 'balanced',
@@ -107,15 +99,14 @@ function sweetSpot() {
 }
 
 // ── Profile persistence ──────────────────────────────────────────────────────
-function normalizeExtraMode(key, value, fallback = EXTRA_MODE_NEVER) {
+function normalizeExtraMode(value, fallback = EXTRA_MODE_NEVER) {
   if ([EXTRA_MODE_OPTIONAL, EXTRA_MODE_ALWAYS, EXTRA_MODE_NEVER].includes(value)) return value;
-  if (value === true) return LEGACY_TRUE_EXTRA_MODE[key] || EXTRA_MODE_OPTIONAL;
   if (value === false) return EXTRA_MODE_NEVER;
   return fallback;
 }
 
 function extraMode(key) {
-  return normalizeExtraMode(key, profile.extras?.[key], defaultProfile.extras[key]);
+  return normalizeExtraMode(profile.extras?.[key], defaultProfile.extras[key]);
 }
 
 function normalizeProfile(data = {}) {
@@ -126,7 +117,7 @@ function normalizeProfile(data = {}) {
     extras: Object.fromEntries(
       Object.entries(defaultProfile.extras).map(([key, fallback]) => [
         key,
-        normalizeExtraMode(key, sourceExtras[key], fallback),
+        normalizeExtraMode(sourceExtras[key], fallback),
       ])
     ),
   };
@@ -388,6 +379,8 @@ function scoreExtraPreference(key, amount, presentBonus, missingPenalty) {
   return missingPenalty;
 }
 
+// Lower score = better. scoreExtraPreference returns a negative value (reward) when the
+// item is present (mode !== NEVER) and a positive value (penalty) when it is absent.
 function scoreSelection(selection, day) {
   const wk = calcSelection(selection, day);
   const ss = sweetSpot();
@@ -395,24 +388,36 @@ function scoreSelection(selection, day) {
   const hasSoup = selection.soup > 0;
   const hasDessert = selection.desserts.some(Boolean);
 
+  // 'under': aim 0.20 € below sweet spot to leave a small buffer.
+  // 'over':  aim 0.45 € above sweet spot — just enough for one extra piece of fruit.
   let target = ss;
   if (profile.budgetMode === 'under') target = ss - 0.2;
   if (profile.budgetMode === 'over') target = ss + 0.45;
 
   let score = Math.abs(wk - target);
+  // 18 = hard penalty ensuring a main is always chosen when one is available.
+  // It dominates all other score components so the optimizer never skips the main.
   if (!hasMain && day.mains.length) score += 18;
 
+  // Additional asymmetric overspend penalties on top of the plain distance-from-target:
+  // 'under': 5 base + steep linear rate (×4) to strongly discourage going over the sweet spot.
+  // 'balanced': gentler 1 base + ×1.5 rate — mild nudge to stay on the safe side.
+  // 'over': allow up to 0.75 € below sweet spot for free; penalize further under-spending softly.
   if (profile.budgetMode === 'under' && wk > ss) score += 5 + ((wk - ss) * 4);
   if (profile.budgetMode === 'balanced' && wk > ss) score += 1 + ((wk - ss) * 1.5);
   if (profile.budgetMode === 'over' && wk < ss) score += Math.max(0, ss - wk - 0.75) * 0.4;
 
+  // Slight bias against large-salad-as-main: prefer real mains when both fit equally well.
   if (selection.salatGross > 0) score += 0.45;
   score += scoreExtraPreference('soup', hasSoup ? 1 : 0, 0.35, 0.3);
+  // Fruit reward diminishes per piece (capped at 0.5) to avoid stacking many pieces.
   score += scoreExtraPreference('fruit', selection.obst, Math.min(0.5, selection.obst * 0.16), 0.25);
   score += scoreExtraPreference('pastry', selection.gebaeck, 0.22, 0.16);
+  // OJ gets an additional +0.35 below so it is chosen last among fillers even when allowed.
   score += scoreExtraPreference('oj', selection.oj, 0.12, 0.12);
   score += scoreExtraPreference('smallSalad', selection.salatKlein, 0.25, 0.35);
 
+  // Dessert is a last-resort filler: add a small cost so it wins only when nothing else fits.
   if (hasDessert && extraMode('dessert') === EXTRA_MODE_OPTIONAL) score += 0.25;
   if (selection.oj > 0) score += 0.35;
 
@@ -1017,16 +1022,19 @@ document.addEventListener('click', e => {
 
   if (action === 'copy-profile-link') {
     const link = profileUrl();
-    window.location.hash = 'p=' + encodeProfile(profile);
     const status = document.getElementById('profile-link-status');
-    const done = () => {
-      if (status) status.textContent = 'Profil-Link bereit.';
+    const fallback = () => {
+      // Clipboard unavailable — put the URL in the address bar so the user can copy it manually.
+      window.location.hash = 'p=' + encodeProfile(profile);
+      if (status) status.textContent = 'Profil-Link in der Adresszeile.';
     };
 
     if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(link).then(done).catch(done);
+      navigator.clipboard.writeText(link)
+        .then(() => { if (status) status.textContent = 'Profil-Link kopiert!'; })
+        .catch(fallback);
     } else {
-      done();
+      fallback();
     }
     return;
   }
@@ -1077,7 +1085,6 @@ document.addEventListener('change', e => {
   const extraEl = e.target.closest('[data-profile-extra]');
   if (extraEl) {
     profile.extras[extraEl.dataset.profileExtra] = normalizeExtraMode(
-      extraEl.dataset.profileExtra,
       extraEl.value,
       defaultProfile.extras[extraEl.dataset.profileExtra]
     );
