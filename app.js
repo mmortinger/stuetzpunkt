@@ -251,25 +251,37 @@ function hasAny(text, words) {
 
 function classifyDish(dish) {
   const text = normalizedDishText(dish);
+  const slot = (dish?.slot || '').toLocaleLowerCase('de-AT');
+  const vegetarianSlot = slot.includes('vegetarisch') || slot.includes('vegan');
+
+  // Dishes with an explicit slot rely on the canteen's own labelling:
+  // only the "Vegetarisch / Vegan" slot is vegetarian — everything else isn't.
+  if (dish?.slot) {
+    return {
+      vegetarian: vegetarianSlot,
+      vegan: vegetarianSlot,
+      hasDairy: false,
+    };
+  }
+
+  // No slot (soup, dessert) — fall back to keyword matching.
   const meatWords = [
     'rind', 'rindsuppe', 'bolognese', 'huhn', 'hühner', 'chicken', 'panko-hühnerbrust',
     'fleisch', 'kalb', 'schwein', 'speck', 'schinken', 'lamm', 'ente', 'coq au vin',
     'albondigas',
   ];
-  const fishWords = ['lachs', 'fisch', 'thunfisch', 'garnele', 'shrimp'];
+  const fishWords = ['lachs', 'fisch', 'thunfisch', 'garnele', 'shrimp', 'saibling', 'forelle', 'zander'];
   const dairyWords = [
     'milch', 'käse', 'kaese', 'feta', 'parmesan', 'joghurt', 'yoghurt', 'rahm',
-    'sauerrahm', 'butter', 'ricotta', 'creme', 'creme', 'österkron', 'oesterkron',
+    'sauerrahm', 'butter', 'ricotta', 'creme', 'österkron', 'oesterkron',
   ];
   const eggWords = ['spätzle', 'spaetzle'];
-  const slot = (dish?.slot || '').toLocaleLowerCase('de-AT');
   const hasMeatOrFish = hasAny(text, meatWords) || hasAny(text, fishWords);
   const hasDairy = hasAny(text, dairyWords);
   const hasEgg = hasAny(text, eggWords);
-  const vegetarianSlot = slot.includes('vegetarisch') || slot.includes('vegan');
 
   return {
-    vegetarian: vegetarianSlot || !hasMeatOrFish,
+    vegetarian: !hasMeatOrFish,
     vegan: !hasMeatOrFish && !hasDairy && !hasEgg,
     hasDairy,
   };
