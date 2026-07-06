@@ -42,7 +42,7 @@ Settings → Actions → General → Workflow permissions → **Read and write p
 
 Actions → „Speiseplan aktualisieren" → Run workflow.
 
-Ab dann läuft der Scraper **automatisch Mo–Fr um 06:00 CEST** und committet die neue `menu.json`.
+Ab dann läuft der Scraper **automatisch 3× täglich (05:17 / 09:17 / 12:17 CEST, jeden Tag)** und committet die neue `menu.json` — sofern sie sich geändert hat.
 
 ---
 
@@ -58,7 +58,7 @@ Diese Datei wird **nie** vom Scraper überschrieben — nur manuell anpassen wen
   "preise_fix": {
     "obst_stueck":       1.00,
     "gebaeck_stueck":    1.50,
-    "orangensaft_glas":  3.60,
+    "orangensaft_glas":  3.80,
     "salat_klein":       2.90,
     "salat_gross":       5.10
   }
