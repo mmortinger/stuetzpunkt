@@ -1,5 +1,5 @@
 {
-  "scraped_at": "2026-07-21T06:05:41.413567+00:00",
+  "scraped_at": "2026-07-21T09:40:04.719931+00:00",
   "weeks": [
     {
       "week_start": "2026-07-20",
@@ -169,15 +169,15 @@
               "slot": "Hauptspeise 1",
               "name": "Paprika Huhn",
               "desc": "Butterspätzle | Sauerrahm",
-              "int": 7.7,
-              "ext": 14.9
+              "int": 7.4,
+              "ext": 14.4
             },
             {
               "slot": "Hauptspeise 2",
               "name": "Szegediner Krautfleisch",
               "desc": "Salzkartoffel",
-              "int": 7.4,
-              "ext": 14.4
+              "int": 8.6,
+              "ext": 16.8
             },
             {
               "slot": "Vegetarisch / Vegan",
