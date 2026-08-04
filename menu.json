@@ -1,5 +1,5 @@
 {
-  "scraped_at": "2026-08-04T06:03:46.948753+00:00",
+  "scraped_at": "2026-08-04T09:50:29.178552+00:00",
   "weeks": [
     {
       "week_start": "2026-08-03",
@@ -120,8 +120,8 @@
               "slot": "Special",
               "name": "Thunfisch Lasagne",
               "desc": "",
-              "int": 8.6,
-              "ext": 16.8
+              "int": 9.4,
+              "ext": 18.2
             }
           ],
           "desserts": [
