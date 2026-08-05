@@ -29,6 +29,7 @@ const EIS_ITEMS = [
   { key: 'cornetto_max',    label: 'Cornetto Max' },
   { key: 'magnum',          label: 'Magnum' },
 ];
+const EIS_FAVORITE_AUTO = 'auto';
 const EXTRA_LABELS = {
   fruit: 'Obst',
   soup: 'Suppe',
@@ -36,6 +37,7 @@ const EXTRA_LABELS = {
   oj: 'OJ',
   smallSalad: 'kleiner Salat',
   dessert: 'Nachspeise',
+  eis: 'Eis',
 };
 const defaultProfile = {
   diet: 'none',
@@ -43,6 +45,7 @@ const defaultProfile = {
   allowLargeSaladMain: false,
   addPastryToLargeSalad: false,
   allowDessert: true,
+  eisFavorite: EIS_FAVORITE_AUTO,
   extras: {
     fruit: EXTRA_MODE_OPTIONAL,
     soup: EXTRA_MODE_NEVER,
@@ -50,6 +53,7 @@ const defaultProfile = {
     oj: EXTRA_MODE_NEVER,
     smallSalad: EXTRA_MODE_NEVER,
     dessert: EXTRA_MODE_OPTIONAL,
+    eis: EXTRA_MODE_OPTIONAL,
   },
 };
 
@@ -143,6 +147,9 @@ function normalizeProfile(data = {}) {
   if (normalized.diet === 'vegan') normalized.diet = 'vegetarian';
   normalized.allowDessert = normalized.extras.dessert !== EXTRA_MODE_NEVER;
 
+  const validEisFavorites = [EIS_FAVORITE_AUTO, ...EIS_ITEMS.map(item => item.key)];
+  if (!validEisFavorites.includes(normalized.eisFavorite)) normalized.eisFavorite = EIS_FAVORITE_AUTO;
+
   return normalized;
 }
 
@@ -227,6 +234,8 @@ function setCartFromSelection(selection) {
   cart.obst       = selection.obst;
   cart.gebaeck    = selection.gebaeck;
   cart.oj         = selection.oj;
+  cart.eis        = Object.fromEntries(EIS_ITEMS.map(item => [item.key, 0]));
+  if (selection.eisKey) cart.eis[selection.eisKey] = 1;
 }
 
 function selectDefaultDay() {
@@ -355,6 +364,7 @@ function emptySelection(day) {
     obst: 0,
     gebaeck: 0,
     oj: 0,
+    eisKey: null,
   };
 }
 
@@ -374,6 +384,7 @@ function calcSelection(selection, day) {
   wk += selection.obst * p.obst_stueck;
   wk += selection.gebaeck * p.gebaeck_stueck;
   wk += selection.oj * p.orangensaft_glas;
+  if (selection.eisKey) wk += cfg.eis[selection.eisKey];
 
   return Math.round(wk * 100) / 100;
 }
@@ -394,6 +405,26 @@ function dessertChoicesFor(eligibleDesserts) {
   if (extraMode('dessert') === EXTRA_MODE_NEVER || !dessertChoices.length) return [emptyChoice];
   if (extraMode('dessert') === EXTRA_MODE_ALWAYS) return dessertChoices;
   return [emptyChoice, ...dessertChoices];
+}
+
+// Picks which Eis flavor to offer: the user's fixed favorite, or — in 'auto' mode —
+// the priciest one that still fits inside the remaining gap to the sweet spot.
+function resolveEisChoice(precedingWk) {
+  if (profile.eisFavorite !== EIS_FAVORITE_AUTO) {
+    return EIS_ITEMS.find(item => item.key === profile.eisFavorite) || null;
+  }
+  const headroom = sweetSpot() - precedingWk;
+  const fitting = EIS_ITEMS
+    .filter(item => cfg.eis[item.key] <= headroom + 1e-9)
+    .sort((a, b) => cfg.eis[b.key] - cfg.eis[a.key]);
+  return fitting[0] || EIS_ITEMS[0];
+}
+
+function eisKeysFor(precedingWk) {
+  const mode = extraMode('eis');
+  if (mode === EXTRA_MODE_NEVER) return [null];
+  const key = resolveEisChoice(precedingWk)?.key || null;
+  return mode === EXTRA_MODE_ALWAYS ? [key] : [null, key];
 }
 
 function scoreExtraPreference(key, amount, presentBonus, missingPenalty) {
@@ -444,6 +475,9 @@ function scoreSelection(selection, day) {
   // Dessert is a last-resort filler: add a small cost so it wins only when nothing else fits.
   if (hasDessert && extraMode('dessert') === EXTRA_MODE_OPTIONAL) score += 0.25;
   if (selection.oj > 0) score += 0.35;
+  // Eis is a last-resort filler too — pricier than fruit/pastry, so it should only
+  // win when it actually helps close the gap to the sweet spot.
+  if (selection.eisKey && extraMode('eis') === EXTRA_MODE_OPTIONAL) score += 0.2;
 
   return { score, wk };
 }
@@ -497,14 +531,18 @@ function buildRecommendationCandidates(dayIdx, state) {
                 if (mainChoice.type === 'large-salad') selection.salatGross = 1;
                 if (dessertChoice.idx >= 0) selection.desserts[dessertChoice.idx] = 1;
 
-                const scored = scoreSelection(selection, day);
-                candidates.push({
-                  selection,
-                  score: scored.score,
-                  wk: scored.wk,
-                  mainKey: mainChoice.key,
-                  mainLabel: mainChoice.label,
-                  mainType: mainChoice.type,
+                const precedingWk = calcSelection(selection, day);
+                eisKeysFor(precedingWk).forEach(eisKey => {
+                  const finalSelection = { ...selection, eisKey };
+                  const scored = scoreSelection(finalSelection, day);
+                  candidates.push({
+                    selection: finalSelection,
+                    score: scored.score,
+                    wk: scored.wk,
+                    mainKey: mainChoice.key,
+                    mainLabel: mainChoice.label,
+                    mainType: mainChoice.type,
+                  });
                 });
               });
             });
@@ -547,6 +585,10 @@ function buildRecommendation(dayIdx = cart.dayIdx, state = getRecommendationStat
   if (best.selection.obst > 0) items.push(`${best.selection.obst}x Obst`);
   if (best.selection.gebaeck > 0) items.push(`${best.selection.gebaeck}x Gebäck`);
   if (best.selection.oj > 0) items.push('Orangensaft');
+  if (best.selection.eisKey) {
+    const eisItem = EIS_ITEMS.find(item => item.key === best.selection.eisKey);
+    if (eisItem) items.push(`${eisItem.label} 🍦`);
+  }
 
   const notes = [];
   if (profile.diet === 'vegetarian') notes.push('vegetarisch gefiltert');
@@ -633,6 +675,7 @@ function renderProfilePanel() {
             ${profileExtraModeControl('oj', 'Orangensaft', 'Bei Bedarf darf Orangensaft ergänzen. Immer nimmt ein Glas dazu. Nie lässt Orangensaft weg.')}
             ${profileExtraModeControl('smallSalad', 'Kleiner Salat', 'Bei Bedarf darf ein kleiner Salat ergänzt werden. Immer nimmt ihn zu Hauptspeisen dazu, aber nicht bei großem Salat als Hauptspeise.')}
             ${profileExtraModeControl('dessert', 'Nachspeise', 'Bei Bedarf darf eine Nachspeise helfen, den Sweet Spot zu treffen. Immer wählt eine passende Nachspeise, sofern vorhanden. Nie lässt Nachspeisen weg.')}
+            ${profileEisControl()}
           </div>
         </div>
         <p id="profile-link-status" class="profile-status" aria-live="polite"></p>
@@ -706,6 +749,31 @@ function profileExtraModeControl(key, label, tip) {
     <fieldset class="extra-mode-field">
       <legend>${settingLabel(label, tip)}</legend>
       <div class="mode-segment" role="radiogroup" aria-label="${esc(label)}">${options}</div>
+    </fieldset>`;
+}
+
+function profileEisControl() {
+  const label = 'Eis';
+  const tip = 'Bei Bedarf darf Eis den Sweet Spot auffüllen, wenn es dazu passt. Immer nimmt in jedem Fall ein Eis dazu. Nie lässt Eis weg. Die Sorte darunter legt fest, welches Eis vorgeschlagen wird — Automatisch wählt jeweils die teuerste Sorte, die noch gratis reingeht.';
+  const selectedMode = extraMode('eis');
+  const modeOptions = EXTRA_MODE_OPTIONS.map(option => `
+    <label>
+      <input type="radio" name="extra-eis" data-profile-extra="eis" value="${option.value}"${selectedMode === option.value ? ' checked' : ''}>
+      <span>${option.label}</span>
+    </label>`).join('');
+  const favoriteOptions = [
+    `<option value="${EIS_FAVORITE_AUTO}"${profile.eisFavorite === EIS_FAVORITE_AUTO ? ' selected' : ''}>Automatisch (teuerstes passendes)</option>`,
+    ...EIS_ITEMS.map(item => `<option value="${item.key}"${profile.eisFavorite === item.key ? ' selected' : ''}>${esc(item.label)}</option>`),
+  ].join('');
+
+  return `
+    <fieldset class="extra-mode-field">
+      <legend>${settingLabel(label, tip)}</legend>
+      <div class="mode-segment" role="radiogroup" aria-label="${esc(label)}">${modeOptions}</div>
+      <label class="field">
+        <span>Sorte</span>
+        <select data-profile="eisFavorite">${favoriteOptions}</select>
+      </label>
     </fieldset>`;
 }
 
@@ -1005,7 +1073,7 @@ function renderSummary() {
 
   if (obstGratis > 0) {
     const eisHint = affordableEis
-      ? `<span class="eis-hint">🍦 Oder überleg dir noch ${esc(affordableEis.label)} (${fmt(cfg.eis[affordableEis.key])}) zu nehmen — geht sich auch noch gratis aus</span>`
+      ? `<span class="eis-hint">🍦 Oder gönn dir noch ein Eis (z. B. ${esc(affordableEis.label)}, ${fmt(cfg.eis[affordableEis.key])}) - geht sich auch noch gratis aus</span>`
       : '';
     infoEl.innerHTML =
       `<span class="obst-gratis">Noch ${obstGratis} Stück Obst gratis möglich 🍎</span>${eisHint}`;

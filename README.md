@@ -2,7 +2,7 @@
 
 Kleine Webapp für den Mittags-Essenszuschuss in der Firmenkantine.  
 Zeigt den aktuellen Speiseplan, lässt Gerichte anklicken und berechnet live,
-was das Essen kostet und wie viele Stück Obst noch **gratis** dazugenommen werden können.
+was das Essen kostet und wie viele Stück Obst oder Eis noch **gratis** dazugenommen werden können.
 
 ## Lokal testen
 
