@@ -22,6 +22,13 @@ const EXTRA_MODE_OPTIONS = [
   { value: EXTRA_MODE_ALWAYS, label: 'Immer' },
   { value: EXTRA_MODE_NEVER, label: 'Nie' },
 ];
+const EIS_ITEMS = [
+  { key: 'jolly',           label: 'Jolly' },
+  { key: 'erdbeer_combino', label: 'Erdbeer Combino' },
+  { key: 'cornetto',        label: 'Cornetto' },
+  { key: 'cornetto_max',    label: 'Cornetto Max' },
+  { key: 'magnum',          label: 'Magnum' },
+];
 const EXTRA_LABELS = {
   fruit: 'Obst',
   soup: 'Suppe',
@@ -58,6 +65,7 @@ const cart = {
   obst:       0,
   gebaeck:    0,
   oj:         0,
+  eis:        {},  // { [key]: count } — see EIS_ITEMS
 };
 
 // ── Formatting ────────────────────────────────────────────────────────────────
@@ -86,6 +94,9 @@ function calcWarenkorb() {
   wk += cart.obst    * p.obst_stueck;
   wk += cart.gebaeck * p.gebaeck_stueck;
   wk += cart.oj      * p.orangensaft_glas;
+  EIS_ITEMS.forEach(item => {
+    wk += (cart.eis[item.key] || 0) * cfg.eis[item.key];
+  });
 
   return Math.round(wk * 100) / 100;
 }
@@ -204,6 +215,7 @@ function resetCart() {
   cart.obst     = 0;
   cart.gebaeck  = 0;
   cart.oj       = 0;
+  cart.eis      = Object.fromEntries(EIS_ITEMS.map(item => [item.key, 0]));
 }
 
 function setCartFromSelection(selection) {
@@ -938,6 +950,29 @@ function renderDayPanel() {
       <div class="steppers-grid">${steppers}</div>
     </section>`);
 
+  // ── Eis ────
+  const eisRows = EIS_ITEMS.map(item => {
+    const val = cart.eis[item.key] || 0;
+    return `
+      <div class="stepper-row${val > 0 ? ' active-row' : ''}">
+        <span class="stepper-label">${esc(item.label)}</span>
+        <div class="stepper">
+          <button class="stepper-btn" data-action="stepper-eis" data-key="${item.key}" data-delta="-1"
+            aria-label="${esc(item.label)} verringern">−</button>
+          <span class="stepper-val" id="stepper-eis-${item.key}">${val}</span>
+          <button class="stepper-btn" data-action="stepper-eis" data-key="${item.key}" data-delta="1"
+            aria-label="${esc(item.label)} hinzufügen">+</button>
+        </div>
+        <span class="stepper-price">${fmt(cfg.eis[item.key])}/Stk.</span>
+      </div>`;
+  }).join('');
+
+  sections.push(`
+    <section class="menu-section glass">
+      <h2 class="section-title">🍦 Eis</h2>
+      <div class="steppers-grid salat-steppers">${eisRows}</div>
+    </section>`);
+
   panel.innerHTML = sections.join('');
 }
 
@@ -963,10 +998,17 @@ function renderSummary() {
   const obstGratis = Math.max(0, Math.floor((ss - wk) / p.obst_stueck));
   const nextCost   = zahlbetrag(wk + p.obst_stueck) - zb;
   const infoEl     = document.getElementById('obst-info');
+  const headroom   = ss - wk;
+  const affordableEis = EIS_ITEMS
+    .filter(item => cfg.eis[item.key] <= headroom + 1e-9)
+    .sort((a, b) => cfg.eis[b.key] - cfg.eis[a.key])[0];
 
   if (obstGratis > 0) {
+    const eisHint = affordableEis
+      ? `<span class="eis-hint">🍦 Oder überleg dir noch ${esc(affordableEis.label)} (${fmt(cfg.eis[affordableEis.key])}) zu nehmen — geht sich auch noch gratis aus</span>`
+      : '';
     infoEl.innerHTML =
-      `<span class="obst-gratis">Noch ${obstGratis} Stück Obst gratis möglich 🍎</span>`;
+      `<span class="obst-gratis">Noch ${obstGratis} Stück Obst gratis möglich 🍎</span>${eisHint}`;
   } else if (wk >= ss) {
     const overflow = wk - ss;
     const sign     = nextCost > 0 ? '+' : '';
@@ -974,7 +1016,9 @@ function renderSummary() {
       `<span class="obst-costs">Stück Obst Nr. ${cart.obst + 1} kostet ${sign}${nextCost.toFixed(2).replace('.', ',')} €</span>` +
       `<span class="sweet-spot-over">+${overflow.toFixed(2).replace('.', ',')} € über Sweet Spot</span>`;
   } else {
-    infoEl.innerHTML = '';
+    const cents = Math.round(nextCost * 100);
+    infoEl.innerHTML =
+      `<span class="obst-costs">Das nächste Stück Obst würde dich ${cents} Cent kosten</span>`;
   }
 }
 
@@ -1058,6 +1102,19 @@ document.addEventListener('click', e => {
     cart[field] = Math.max(0, (cart[field] || 0) + delta);
     const valEl = document.getElementById('stepper-' + field);
     if (valEl) valEl.textContent = cart[field];
+    renderSummary();
+    return;
+  }
+
+  // Eis stepper
+  if (action === 'stepper-eis') {
+    const key   = el.dataset.key;
+    const delta = parseInt(el.dataset.delta, 10);
+    cart.eis[key] = Math.max(0, (cart.eis[key] || 0) + delta);
+    const valEl  = document.getElementById('stepper-eis-' + key);
+    const rowEl  = valEl?.closest('.stepper-row');
+    if (valEl) valEl.textContent = cart.eis[key];
+    if (rowEl) rowEl.classList.toggle('active-row', cart.eis[key] > 0);
     renderSummary();
     return;
   }

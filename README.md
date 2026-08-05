@@ -61,6 +61,13 @@ Diese Datei wird **nie** vom Scraper überschrieben — nur manuell anpassen wen
     "orangensaft_glas":  3.80,
     "salat_klein":       2.90,
     "salat_gross":       5.10
+  },
+  "eis": {
+    "jolly":           1.30,
+    "erdbeer_combino": 1.60,
+    "cornetto":        2.00,
+    "cornetto_max":    2.30,
+    "magnum":          2.90
   }
 }
 ```

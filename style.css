@@ -771,6 +771,12 @@ h1 {
   color: var(--teal);
   font-weight: 600;
 }
+.eis-hint {
+  display: block;
+  margin-top: .25rem;
+  color: var(--text-dim);
+  font-weight: 500;
+}
 .obst-costs {
   display: block;
   color: var(--text-dim);
