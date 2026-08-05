@@ -78,6 +78,20 @@ const fmtDt = iso => {
   const [, m, d] = iso.split('-');
   return `${d}.${m}.`;
 };
+// Local calendar date, not UTC — toISOString() would roll over to the previous
+// day between midnight and 02:00 Vienna time and preselect the wrong tab.
+const todayISO = () => {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+// Eis flavors that actually carry a price in config.json. A browser holding a
+// cached config.json from before the Eis prices existed would otherwise poison
+// every total with NaN.
+function eisItems() {
+  return EIS_ITEMS.filter(item => typeof cfg.eis?.[item.key] === 'number');
+}
 
 // ── Calculation ───────────────────────────────────────────────────────────────
 function calcWarenkorb() {
@@ -98,7 +112,7 @@ function calcWarenkorb() {
   wk += cart.obst    * p.obst_stueck;
   wk += cart.gebaeck * p.gebaeck_stueck;
   wk += cart.oj      * p.orangensaft_glas;
-  EIS_ITEMS.forEach(item => {
+  eisItems().forEach(item => {
     wk += (cart.eis[item.key] || 0) * cfg.eis[item.key];
   });
 
@@ -240,10 +254,10 @@ function setCartFromSelection(selection) {
 
 function selectDefaultDay() {
   if (!allDays.length) return 0;
-  const todayISO = new Date().toISOString().slice(0, 10);
-  let idx = allDays.findIndex(d => d.date === todayISO);
+  const today = todayISO();
+  let idx = allDays.findIndex(d => d.date === today);
   if (idx >= 0) return idx;
-  idx = allDays.findIndex(d => d.date > todayISO);
+  idx = allDays.findIndex(d => d.date > today);
   return idx >= 0 ? idx : 0;
 }
 
@@ -407,23 +421,36 @@ function dessertChoicesFor(eligibleDesserts) {
   return [emptyChoice, ...dessertChoices];
 }
 
+// The warenkorb value the optimizer aims for, per Sweet-Spot strategy.
+// 'under': stay 0.20 € below to leave a small buffer.
+// 'over':  0.45 € above — just enough for one extra piece of fruit.
+function budgetTarget() {
+  const ss = sweetSpot();
+  if (profile.budgetMode === 'under') return ss - 0.2;
+  if (profile.budgetMode === 'over') return ss + 0.45;
+  return ss;
+}
+
 // Picks which Eis flavor to offer: the user's fixed favorite, or — in 'auto' mode —
-// the priciest one that still fits inside the remaining gap to the sweet spot.
+// the priciest one that still fits the gap to the budget target. Using the target
+// rather than the raw sweet spot keeps auto-mode aligned with 'Leicht drüber'.
 function resolveEisChoice(precedingWk) {
+  const items = eisItems();
   if (profile.eisFavorite !== EIS_FAVORITE_AUTO) {
-    return EIS_ITEMS.find(item => item.key === profile.eisFavorite) || null;
+    return items.find(item => item.key === profile.eisFavorite) || null;
   }
-  const headroom = sweetSpot() - precedingWk;
-  const fitting = EIS_ITEMS
+  const headroom = budgetTarget() - precedingWk;
+  const fitting = items
     .filter(item => cfg.eis[item.key] <= headroom + 1e-9)
     .sort((a, b) => cfg.eis[b.key] - cfg.eis[a.key]);
-  return fitting[0] || EIS_ITEMS[0];
+  return fitting[0] || items[0] || null;
 }
 
 function eisKeysFor(precedingWk) {
   const mode = extraMode('eis');
   if (mode === EXTRA_MODE_NEVER) return [null];
   const key = resolveEisChoice(precedingWk)?.key || null;
+  if (!key) return [null];
   return mode === EXTRA_MODE_ALWAYS ? [key] : [null, key];
 }
 
@@ -443,13 +470,7 @@ function scoreSelection(selection, day) {
   const hasSoup = selection.soup > 0;
   const hasDessert = selection.desserts.some(Boolean);
 
-  // 'under': aim 0.20 € below sweet spot to leave a small buffer.
-  // 'over':  aim 0.45 € above sweet spot — just enough for one extra piece of fruit.
-  let target = ss;
-  if (profile.budgetMode === 'under') target = ss - 0.2;
-  if (profile.budgetMode === 'over') target = ss + 0.45;
-
-  let score = Math.abs(wk - target);
+  let score = Math.abs(wk - budgetTarget());
   // 18 = hard penalty ensuring a main is always chosen when one is available.
   // It dominates all other score components so the optimizer never skips the main.
   if (!hasMain && day.mains.length) score += 18;
@@ -586,7 +607,7 @@ function buildRecommendation(dayIdx = cart.dayIdx, state = getRecommendationStat
   if (best.selection.gebaeck > 0) items.push(`${best.selection.gebaeck}x Gebäck`);
   if (best.selection.oj > 0) items.push('Orangensaft');
   if (best.selection.eisKey) {
-    const eisItem = EIS_ITEMS.find(item => item.key === best.selection.eisKey);
+    const eisItem = eisItems().find(item => item.key === best.selection.eisKey);
     if (eisItem) items.push(`${eisItem.label} 🍦`);
   }
 
@@ -763,17 +784,19 @@ function profileEisControl() {
     </label>`).join('');
   const favoriteOptions = [
     `<option value="${EIS_FAVORITE_AUTO}"${profile.eisFavorite === EIS_FAVORITE_AUTO ? ' selected' : ''}>Automatisch (teuerstes passendes)</option>`,
-    ...EIS_ITEMS.map(item => `<option value="${item.key}"${profile.eisFavorite === item.key ? ' selected' : ''}>${esc(item.label)}</option>`),
+    ...eisItems().map(item => `<option value="${item.key}"${profile.eisFavorite === item.key ? ' selected' : ''}>${esc(item.label)}</option>`),
   ].join('');
+  // The flavor only matters when Eis can actually be recommended.
+  const favoriteField = selectedMode === EXTRA_MODE_NEVER ? '' : `
+      <label class="field">
+        <span>Sorte</span>
+        <select data-profile="eisFavorite">${favoriteOptions}</select>
+      </label>`;
 
   return `
     <fieldset class="extra-mode-field">
       <legend>${settingLabel(label, tip)}</legend>
-      <div class="mode-segment" role="radiogroup" aria-label="${esc(label)}">${modeOptions}</div>
-      <label class="field">
-        <span>Sorte</span>
-        <select data-profile="eisFavorite">${favoriteOptions}</select>
-      </label>
+      <div class="mode-segment" role="radiogroup" aria-label="${esc(label)}">${modeOptions}</div>${favoriteField}
     </fieldset>`;
 }
 
@@ -802,11 +825,11 @@ function profileSummary() {
 function renderWeeklyRecommendations() {
   const el = document.getElementById('weekly-recommendations');
   if (!el) return;
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
 
   const days = allDays.map((day, dayIdx) => {
     const recommendation = buildRecommendation(dayIdx, getRecommendationState(dayIdx, 'weekly'));
-    const isPast = day.date < todayISO;
+    const isPast = day.date < today;
     const itemList = recommendation?.items.length
       ? recommendation.items.map(item => `<li>${esc(item)}</li>`).join('')
       : '<li>Keine Empfehlung</li>';
@@ -840,12 +863,12 @@ function renderWeeklyRecommendations() {
 function renderDayNav() {
   const nav      = document.getElementById('day-nav');
   if (!nav) return;
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
 
   nav.innerHTML = menuData.weeks.map(w => {
     const tabs = w.days.map(day => {
       const globalIdx = allDays.findIndex(d => d.date === day.date);
-      const isPast    = day.date < todayISO;
+      const isPast    = day.date < today;
       const isActive  = globalIdx === cart.dayIdx;
       const shortDay  = day.weekday.slice(0, 2);
       return `<button
@@ -859,28 +882,24 @@ function renderDayNav() {
   }).join('');
 }
 
-// ── Dish card helper ──────────────────────────────────────────────────────────
-function dishCard({ id, active, slotLabel, name, desc, unitPrice, field, idx }) {
-  const idxAttr  = idx !== undefined ? ` data-idx="${idx}"` : '';
-  const idStr    = id ? ` id="${id}"` : '';
-  const valId    = id ? `id="${id}-val"` : '';
+// ── Stepper row helper ────────────────────────────────────────────────────────
+// Shared markup for the Salatbuffet, Extras and Eis rows. `label` may carry an
+// emoji prefix and is inserted as-is; `name` is the plain text for aria-labels.
+function stepperRow({ valId, label, name, price, val, action, dataAttrs }) {
+  const attrs = Object.entries(dataAttrs)
+    .map(([key, value]) => ` data-${key}="${esc(String(value))}"`)
+    .join('');
   return `
-    <div class="dish-card${active ? ' active' : ''}"${idStr}>
-      <div class="dish-info">
-        ${slotLabel ? `<span class="main-slot">${esc(slotLabel)}</span>` : ''}
-        <span class="dish-name">${esc(name)}</span>
-        ${desc ? `<span class="dish-desc">${esc(desc)}</span>` : ''}
-        ${unitPrice != null ? `<span class="dish-unit-price">${fmt(unitPrice)}/Stk.</span>` : ''}
-      </div>
+    <div class="stepper-row${val > 0 ? ' active-row' : ''}">
+      <span class="stepper-label">${label}</span>
       <div class="stepper">
-        <button class="stepper-btn"
-          data-action="stepper-dish" data-field="${field}"${idxAttr} data-delta="-1"
+        <button class="stepper-btn" data-action="${action}"${attrs} data-delta="-1"
           aria-label="${esc(name)} verringern">−</button>
-        <span class="stepper-val" ${valId}>${active && idx === undefined ? cart.soup : (idx !== undefined && field === 'main' ? cart.mains[idx] : (idx !== undefined ? cart.desserts[idx] : 0))}</span>
-        <button class="stepper-btn"
-          data-action="stepper-dish" data-field="${field}"${idxAttr} data-delta="1"
+        <span class="stepper-val" id="${valId}">${val}</span>
+        <button class="stepper-btn" data-action="${action}"${attrs} data-delta="1"
           aria-label="${esc(name)} erhöhen">+</button>
       </div>
+      <span class="stepper-price">${fmt(price)}/Stk.</span>
     </div>`;
 }
 
@@ -920,18 +939,15 @@ function renderDayPanel() {
     const salatRows = [
       { field: 'salatKlein', label: 'Klein', price: p.salat_klein, val: cart.salatKlein },
       { field: 'salatGross', label: 'Groß',  price: p.salat_gross, val: cart.salatGross },
-    ].map(s => `
-      <div class="stepper-row${s.val > 0 ? ' active-row' : ''}">
-        <span class="stepper-label">${s.label}</span>
-        <div class="stepper">
-          <button class="stepper-btn" data-action="stepper" data-field="${s.field}" data-delta="-1"
-            aria-label="Salat ${s.label} verringern">−</button>
-          <span class="stepper-val" id="stepper-${s.field}">${s.val}</span>
-          <button class="stepper-btn" data-action="stepper" data-field="${s.field}" data-delta="1"
-            aria-label="Salat ${s.label} hinzufügen">+</button>
-        </div>
-        <span class="stepper-price">${fmt(s.price)}/Stk.</span>
-      </div>`).join('');
+    ].map(s => stepperRow({
+      valId: `stepper-${s.field}`,
+      label: s.label,
+      name: `Salat ${s.label}`,
+      price: s.price,
+      val: s.val,
+      action: 'stepper',
+      dataAttrs: { field: s.field },
+    })).join('');
     sections.push(`
       <section class="menu-section glass">
         <h2 class="section-title">Salatbuffet</h2>
@@ -999,18 +1015,15 @@ function renderDayPanel() {
     { field: 'obst',    emoji: '🍎', label: 'Obst',        price: p.obst_stueck,      val: cart.obst },
     { field: 'gebaeck', emoji: '🥖', label: 'Gebäck',      price: p.gebaeck_stueck,   val: cart.gebaeck },
     { field: 'oj',      emoji: '🍊', label: 'Orangensaft', price: p.orangensaft_glas, val: cart.oj },
-  ].map(s => `
-    <div class="stepper-row">
-      <span class="stepper-label">${s.emoji} ${s.label}</span>
-      <div class="stepper">
-        <button class="stepper-btn" data-action="stepper" data-field="${s.field}" data-delta="-1"
-          aria-label="${s.label} verringern">−</button>
-        <span class="stepper-val" id="stepper-${s.field}">${s.val}</span>
-        <button class="stepper-btn" data-action="stepper" data-field="${s.field}" data-delta="1"
-          aria-label="${s.label} erhöhen">+</button>
-      </div>
-      <span class="stepper-price">${fmt(s.price)}/Stk.</span>
-    </div>`).join('');
+  ].map(s => stepperRow({
+    valId: `stepper-${s.field}`,
+    label: `${s.emoji} ${s.label}`,
+    name: s.label,
+    price: s.price,
+    val: s.val,
+    action: 'stepper',
+    dataAttrs: { field: s.field },
+  })).join('');
 
   sections.push(`
     <section class="menu-section glass">
@@ -1019,27 +1032,24 @@ function renderDayPanel() {
     </section>`);
 
   // ── Eis ────
-  const eisRows = EIS_ITEMS.map(item => {
-    const val = cart.eis[item.key] || 0;
-    return `
-      <div class="stepper-row${val > 0 ? ' active-row' : ''}">
-        <span class="stepper-label">${esc(item.label)}</span>
-        <div class="stepper">
-          <button class="stepper-btn" data-action="stepper-eis" data-key="${item.key}" data-delta="-1"
-            aria-label="${esc(item.label)} verringern">−</button>
-          <span class="stepper-val" id="stepper-eis-${item.key}">${val}</span>
-          <button class="stepper-btn" data-action="stepper-eis" data-key="${item.key}" data-delta="1"
-            aria-label="${esc(item.label)} hinzufügen">+</button>
-        </div>
-        <span class="stepper-price">${fmt(cfg.eis[item.key])}/Stk.</span>
-      </div>`;
-  }).join('');
+  const availableEis = eisItems();
+  if (availableEis.length) {
+    const eisRows = availableEis.map(item => stepperRow({
+      valId: `stepper-eis-${item.key}`,
+      label: esc(item.label),
+      name: item.label,
+      price: cfg.eis[item.key],
+      val: cart.eis[item.key] || 0,
+      action: 'stepper-eis',
+      dataAttrs: { key: item.key },
+    })).join('');
 
-  sections.push(`
-    <section class="menu-section glass">
-      <h2 class="section-title">🍦 Eis</h2>
-      <div class="steppers-grid salat-steppers">${eisRows}</div>
-    </section>`);
+    sections.push(`
+      <section class="menu-section glass">
+        <h2 class="section-title">🍦 Eis</h2>
+        <div class="steppers-grid salat-steppers">${eisRows}</div>
+      </section>`);
+  }
 
   panel.innerHTML = sections.join('');
 }
@@ -1067,7 +1077,7 @@ function renderSummary() {
   const nextCost   = zahlbetrag(wk + p.obst_stueck) - zb;
   const infoEl     = document.getElementById('obst-info');
   const headroom   = ss - wk;
-  const affordableEis = EIS_ITEMS
+  const affordableEis = eisItems()
     .filter(item => cfg.eis[item.key] <= headroom + 1e-9)
     .sort((a, b) => cfg.eis[b.key] - cfg.eis[a.key])[0];
 
@@ -1101,6 +1111,15 @@ function render() {
   renderRecommendation();
   renderDayPanel();
   renderSummary();
+}
+
+// Keeps a stepper row's number and its active-row highlight in sync after a
+// click, without re-rendering the whole day panel.
+function syncStepperRow(valId, value) {
+  const valEl = document.getElementById(valId);
+  if (!valEl) return;
+  valEl.textContent = value;
+  valEl.closest('.stepper-row')?.classList.toggle('active-row', value > 0);
 }
 
 // ── Event handling ────────────────────────────────────────────────────────────
@@ -1163,26 +1182,20 @@ document.addEventListener('click', e => {
     return;
   }
 
-  // Extras stepper (obst / gebaeck / oj)
+  // Salat / Extras stepper (salatKlein / salatGross / obst / gebaeck / oj)
   if (action === 'stepper') {
     const field = el.dataset.field;
-    const delta = parseInt(el.dataset.delta, 10);
-    cart[field] = Math.max(0, (cart[field] || 0) + delta);
-    const valEl = document.getElementById('stepper-' + field);
-    if (valEl) valEl.textContent = cart[field];
+    cart[field] = Math.max(0, (cart[field] || 0) + parseInt(el.dataset.delta, 10));
+    syncStepperRow('stepper-' + field, cart[field]);
     renderSummary();
     return;
   }
 
   // Eis stepper
   if (action === 'stepper-eis') {
-    const key   = el.dataset.key;
-    const delta = parseInt(el.dataset.delta, 10);
-    cart.eis[key] = Math.max(0, (cart.eis[key] || 0) + delta);
-    const valEl  = document.getElementById('stepper-eis-' + key);
-    const rowEl  = valEl?.closest('.stepper-row');
-    if (valEl) valEl.textContent = cart.eis[key];
-    if (rowEl) rowEl.classList.toggle('active-row', cart.eis[key] > 0);
+    const key = el.dataset.key;
+    cart.eis[key] = Math.max(0, (cart.eis[key] || 0) + parseInt(el.dataset.delta, 10));
+    syncStepperRow('stepper-eis-' + key, cart.eis[key]);
     renderSummary();
     return;
   }
@@ -1256,7 +1269,7 @@ async function init() {
     loadProfile();
 
     [cfg, menuData] = await Promise.all([
-      fetch('config.json').then(r => { if (!r.ok) throw new Error('config.json: ' + r.status); return r.json(); }),
+      fetch('config.json?v=' + Date.now()).then(r => { if (!r.ok) throw new Error('config.json: ' + r.status); return r.json(); }),
       fetch('menu.json?v=' + Date.now()).then(r  => { if (!r.ok) throw new Error('menu.json: '   + r.status); return r.json(); }),
     ]);
   } catch (err) {

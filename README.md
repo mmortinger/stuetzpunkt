@@ -4,6 +4,9 @@ Kleine Webapp für den Mittags-Essenszuschuss in der Firmenkantine.
 Zeigt den aktuellen Speiseplan, lässt Gerichte anklicken und berechnet live,
 was das Essen kostet und wie viele Stück Obst oder Eis noch **gratis** dazugenommen werden können.
 
+Zusätzlich gibt es eine Empfehlungsschicht mit einstellbarem Profil — siehe
+[docs/recommendations.md](docs/recommendations.md).
+
 ## Lokal testen
 
 ```bash

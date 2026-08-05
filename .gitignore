@@ -1,1 +1,7 @@
 kantinen-rechner-prompt.md
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

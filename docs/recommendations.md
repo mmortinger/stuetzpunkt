@@ -12,7 +12,14 @@ Dieses Dokument beschreibt die zusätzliche Empfehlungsschicht für Stützpunkt.
 - Empfehlungsprofil
 - Tagesempfehlung
 - normaler Speiseplan mit Steppers
+- eigene Eis-Sektion am Ende des Speiseplans
 - Warenkorb/Sweet-Spot-Berechnung
+
+Unter dem Warenkorb steht je nach Stand ein Hinweis:
+
+- noch Gratis-Obst übrig → `Noch X Stück Obst gratis möglich` plus, wenn eine Sorte noch in die Lücke passt, ein Eis-Vorschlag
+- kein Gratis-Obst mehr, aber noch unter dem Sweet Spot → was das nächste Stück Obst kosten würde
+- über dem Sweet Spot → Preis des nächsten Stücks Obst und der Betrag über dem Sweet Spot
 
 ### Wochenübersicht
 
@@ -64,8 +71,23 @@ Jeder Zusatz hat drei Modi:
 - Orangensaft
 - Kleiner Salat
 - Nachspeise
+- Eis
 
-Obst und Nachspeise stehen für neue User standardmäßig auf `Bei Bedarf`. Die übrigen Zusätze stehen standardmäßig auf `Nie`.
+Obst, Nachspeise und Eis stehen für neue User standardmäßig auf `Bei Bedarf`. Die übrigen Zusätze stehen standardmäßig auf `Nie`.
+
+#### Eis-Sorte
+
+Der Zusatz `Eis` hat zusätzlich eine Auswahl `Sorte`. Sie ist nur sichtbar, wenn Eis nicht auf `Nie` steht.
+
+- `Automatisch (teuerstes passendes)`
+  - wählt pro Tag die teuerste Sorte, die noch in die Lücke bis zum Budget-Ziel passt
+  - das Budget-Ziel folgt der Sweet-Spot-Einstellung, `Leicht drüber` darf also auch eine teurere Sorte vorschlagen
+- eine feste Lieblingssorte
+  - schlägt immer diese Sorte vor, unabhängig davon ob sie noch gratis reingeht
+
+Die Preise der Sorten stehen in `config.json` unter `eis`. Sorten ohne Preis in der Config werden überall ausgeblendet.
+
+Eis wird wie die Nachspeise als letzter Füller behandelt: es gewinnt nur, wenn es den Abstand zum Sweet Spot tatsächlich verbessert.
 
 ## Info-Hover
 
