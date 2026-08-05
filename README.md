@@ -45,7 +45,10 @@ Settings → Actions → General → Workflow permissions → **Read and write p
 
 Actions → „Speiseplan aktualisieren" → Run workflow.
 
-Ab dann läuft der Scraper **automatisch 3× täglich (05:17 / 09:17 / 12:17 CEST, jeden Tag)** und committet die neue `menu.json` — sofern sie sich geändert hat.
+Ab dann läuft der Scraper **automatisch 3× täglich (03:17 / 07:17 / 10:17 UTC, jeden Tag)** und committet die neue `menu.json` — sofern sie sich geändert hat.
+
+GitHub-Cron kennt keine Zeitzonen und läuft immer in UTC. In Wiener Zeit sind das
+**05:17 / 09:17 / 12:17 im Sommer (CEST)** und **04:17 / 08:17 / 11:17 im Winter (CET)**.
 
 ---
 

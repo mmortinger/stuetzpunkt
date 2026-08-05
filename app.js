@@ -1073,31 +1073,45 @@ function renderSummary() {
   document.getElementById('progress-left').textContent  = fmt(wk);
   document.getElementById('progress-right').textContent = `Sweet Spot ${fmt(ss)}`;
 
-  const obstGratis = Math.max(0, Math.floor((ss - wk) / p.obst_stueck));
-  const nextCost   = zahlbetrag(wk + p.obst_stueck) - zb;
-  const infoEl     = document.getElementById('obst-info');
-  const headroom   = ss - wk;
-  const affordableEis = eisItems()
-    .filter(item => cfg.eis[item.key] <= headroom + 1e-9)
-    .sort((a, b) => cfg.eis[b.key] - cfg.eis[a.key])[0];
+  // The hint follows the Zusätze profile: it must not push Obst or Eis at
+  // someone who has set them to 'Nie'.
+  const fruitAllowed = extraMode('fruit') !== EXTRA_MODE_NEVER;
+  const eisAllowed   = extraMode('eis') !== EXTRA_MODE_NEVER;
+  const headroom     = ss - wk;
+  const overflow     = wk - ss;
+  const obstGratis   = Math.max(0, Math.floor(headroom / p.obst_stueck));
+  const nextCost     = zahlbetrag(wk + p.obst_stueck) - zb;
+  const affordableEis = eisAllowed
+    ? eisItems()
+      .filter(item => cfg.eis[item.key] <= headroom + 1e-9)
+      .sort((a, b) => cfg.eis[b.key] - cfg.eis[a.key])[0]
+    : null;
 
-  if (obstGratis > 0) {
-    const eisHint = affordableEis
-      ? `<span class="eis-hint">🍦 Oder gönn dir noch ein Eis (z. B. ${esc(affordableEis.label)}, ${fmt(cfg.eis[affordableEis.key])}) - geht sich auch noch gratis aus</span>`
-      : '';
-    infoEl.innerHTML =
-      `<span class="obst-gratis">Noch ${obstGratis} Stück Obst gratis möglich 🍎</span>${eisHint}`;
-  } else if (wk >= ss) {
-    const overflow = wk - ss;
-    const sign     = nextCost > 0 ? '+' : '';
-    infoEl.innerHTML =
-      `<span class="obst-costs">Stück Obst Nr. ${cart.obst + 1} kostet ${sign}${nextCost.toFixed(2).replace('.', ',')} €</span>` +
-      `<span class="sweet-spot-over">+${overflow.toFixed(2).replace('.', ',')} € über Sweet Spot</span>`;
-  } else {
-    const cents = Math.round(nextCost * 100);
-    infoEl.innerHTML =
-      `<span class="obst-costs">Das nächste Stück Obst würde dich ${cents} Cent kosten</span>`;
+  const lines = [];
+
+  if (fruitAllowed && obstGratis > 0) {
+    lines.push(`<span class="obst-gratis">Noch ${obstGratis} Stück Obst gratis möglich 🍎</span>`);
+  } else if (fruitAllowed && wk >= ss) {
+    const sign = nextCost > 0 ? '+' : '';
+    lines.push(`<span class="obst-costs">Stück Obst Nr. ${cart.obst + 1} kostet ${sign}${nextCost.toFixed(2).replace('.', ',')} €</span>`);
+  } else if (fruitAllowed) {
+    lines.push(`<span class="obst-costs">Das nächste Stück Obst würde dich ${Math.round(nextCost * 100)} Cent kosten</span>`);
+  } else if (headroom > 0.005) {
+    lines.push(`<span class="obst-gratis">Noch ${fmt(headroom)} bis zum Sweet Spot</span>`);
   }
+
+  // An affordable Eis implies headroom of at least its price, so one of the
+  // lines above has always been emitted — "Oder" always has something to
+  // refer back to.
+  if (affordableEis) {
+    lines.push(`<span class="eis-hint">🍦 Oder gönn dir noch ein Eis (z. B. ${esc(affordableEis.label)}, ${fmt(cfg.eis[affordableEis.key])}) - geht sich auch noch gratis aus</span>`);
+  }
+
+  if (overflow > 0.005) {
+    lines.push(`<span class="sweet-spot-over">+${overflow.toFixed(2).replace('.', ',')} € über Sweet Spot</span>`);
+  }
+
+  document.getElementById('obst-info').innerHTML = lines.join('');
 }
 
 function render() {
