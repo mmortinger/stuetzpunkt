@@ -62,8 +62,8 @@ Diese Datei wird **nie** vom Scraper überschrieben — nur manuell anpassen wen
   "min_betrag":    4.28,
   "max_stuetzung": 6.66,
   "preise_fix": {
-    "obst_stueck":       1.00,
-    "gebaeck_stueck":    1.50,
+    "obst_stueck":       0.80,
+    "gebaeck_stueck":    0.80,
     "orangensaft_glas":  3.80,
     "salat_klein":       2.90,
     "salat_gross":       5.10
