@@ -1,5 +1,5 @@
 {
-  "scraped_at": "2026-09-23T08:33:56.255469+00:00",
+  "scraped_at": "2026-09-23T12:45:09.475222+00:00",
   "weeks": [
     {
       "week_start": "2026-09-21",
@@ -190,8 +190,8 @@
               "slot": "Special",
               "name": "Chicken Burrito",
               "desc": "Nachos | Cheddar Sauce",
-              "int": 9.4,
-              "ext": 18.2
+              "int": 8.6,
+              "ext": 16.8
             }
           ],
           "desserts": [
