@@ -1,5 +1,5 @@
 {
-  "scraped_at": "2026-10-05T19:17:12.251508+00:00",
+  "scraped_at": "2026-10-06T10:16:20.787258+00:00",
   "weeks": [
     {
       "week_start": "2026-10-05",
@@ -323,6 +323,335 @@
             },
             {
               "name": "Schoko-Mascarpone Creme",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "week_start": "2026-10-12",
+      "days": [
+        {
+          "date": "2026-10-12",
+          "weekday": "Montag",
+          "soup": {
+            "name": "Indische Rote Rüben Suppe",
+            "desc": "Kreuzkümmel Joghurt",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Prosciutto-Birnen-Gorgonzola Salat",
+              "desc": ""
+            },
+            {
+              "name": "Curry-Apfel Eiersalat",
+              "desc": ""
+            },
+            {
+              "name": "Taboule Couscous Salat",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Geschmortes Scherzerl vom Rind",
+              "desc": "Blue Cheese Gratin |  Gemüse",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Rotes Thai Hühner Curry",
+              "desc": "Jasminreis | Brokkolini",
+              "int": 7.7,
+              "ext": 14.9
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Sautierte Gnocchi",
+              "desc": "Marchfelder Erbsen",
+              "int": 6.7,
+              "ext": 11.6
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Passionsfrucht Panna Cotta",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Honig-Vollmilchschokolade Mousse",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-10-13",
+          "weekday": "Dienstag",
+          "soup": {
+            "name": "Altwiener Suppentopf",
+            "desc": "frischer Schnittlauch",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Prosciutto-Birnen-Gorgonzola Salat",
+              "desc": ""
+            },
+            {
+              "name": "Curry-Apfel Eiersalat",
+              "desc": ""
+            },
+            {
+              "name": "Taboule Couscous Salat",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Chili con Carne",
+              "desc": "Maispüree | Sauerrahm",
+              "int": 7.4,
+              "ext": 14.4
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Gebratenes Zanderfilet",
+              "desc": "Zitronen-Pfeffer-Risotto | Gemüse",
+              "int": 9.4,
+              "ext": 18.2
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Quinoa Ratatouille",
+              "desc": "Edamame | Brokkolini",
+              "int": 6.7,
+              "ext": 11.6
+            },
+            {
+              "slot": "Special",
+              "name": "Cordon Bleu",
+              "desc": "Pommes",
+              "int": 8.6,
+              "ext": 16.8
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Mandeltarte",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Himbeer Panna Cotta",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-10-14",
+          "weekday": "Mittwoch",
+          "soup": {
+            "name": "Tomaten-Kokosnuss Suppe",
+            "desc": "Ciabatta Croûtons",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Prosciutto-Birnen-Gorgonzola Salat",
+              "desc": ""
+            },
+            {
+              "name": "Curry-Apfel Eiersalat",
+              "desc": ""
+            },
+            {
+              "name": "Taboule Couscous Salat",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Paprika Huhn",
+              "desc": "Butterspätzle | Sauerrahm",
+              "int": 7.4,
+              "ext": 14.4
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Kalbfleischbällchen",
+              "desc": "Reis | Gemüse | Züricher Sauce",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Süßkartoffel Pürre",
+              "desc": "gegrilltes Gemüse | Koriander",
+              "int": 6.7,
+              "ext": 11.6
+            },
+            {
+              "slot": "Special",
+              "name": "Asia Wok",
+              "desc": "Rinderfiletspitzen | Eiernudel",
+              "int": 9.4,
+              "ext": 16.8
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Profiteroles",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Veganer Reispudding",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-10-15",
+          "weekday": "Donnerstag",
+          "soup": {
+            "name": "Tom Kha Gai",
+            "desc": "Kokosmilch | Koriander",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Prosciutto-Birnen-Gorgonzola Salat",
+              "desc": ""
+            },
+            {
+              "name": "Curry-Apfel Eiersalat",
+              "desc": ""
+            },
+            {
+              "name": "Taboule Couscous Salat",
+              "desc": ""
+            },
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Ananas-Shrimp Curry",
+              "desc": "Kokos-Basmatireis",
+              "int": 9.4,
+              "ext": 18.2
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Landhuhnbrust",
+              "desc": "Chorizzo Bohnen | Erdäpfel Gratin",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Auberginen Parmigiana",
+              "desc": "frischer Basilikum",
+              "int": 6.7,
+              "ext": 11.6
+            },
+            {
+              "slot": "Special",
+              "name": "Nougatknödel",
+              "desc": "Erdbeersauce",
+              "int": 5.0,
+              "ext": 9.7
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Himbeer-Nougat Delight",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Topfencreme mit Orangenjelly",
+              "int": 4.3,
+              "ext": 5.4
+            }
+          ]
+        },
+        {
+          "date": "2026-10-16",
+          "weekday": "Freitag",
+          "soup": {
+            "name": "Trüffelschaum Suppe",
+            "desc": "Croutons",
+            "int": 2.5,
+            "ext": 5.0
+          },
+          "salads": [
+            {
+              "name": "Gartenfrischer Blattsalat",
+              "desc": ""
+            }
+          ],
+          "mains": [
+            {
+              "slot": "Hauptspeise 1",
+              "name": "Gegrillter Saibling",
+              "desc": "Tomaten-Kichererbsen Cassoulet | Toskanisches Gemüse",
+              "int": 9.4,
+              "ext": 18.2
+            },
+            {
+              "slot": "Hauptspeise 2",
+              "name": "Gefüllte Hühneroberkeule",
+              "desc": "Erdäpfelmousseline | Ofen Gemüse",
+              "int": 8.6,
+              "ext": 16.8
+            },
+            {
+              "slot": "Vegetarisch / Vegan",
+              "name": "Penne",
+              "desc": "Melanzani | Tomaten | Zucchini",
+              "int": 6.7,
+              "ext": 11.6
+            }
+          ],
+          "desserts": [
+            {
+              "name": "Marmorkuchen",
+              "int": 3.1,
+              "ext": 5.0
+            },
+            {
+              "name": "Topfencreme | frische Erdbeeren",
               "int": 4.3,
               "ext": 5.4
             }
